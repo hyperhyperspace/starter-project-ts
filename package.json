@@ -4,7 +4,7 @@
   "description": "An empty Hyper Hyper Space project that can be used as a starting point for new datatypes, using TypeScript.",
   "main": "dist/index.js",
   "repository": "https://github.com/hyperhyperspace/starter-project-ts",
-  "author": "Santiago Bazerque",
+  "author": "Your Name Here",
   "license": "MIT",
   "private": false,
   "source": "src/index.ts",
@@ -16,12 +16,12 @@
   },
   "devDependencies": {
     "typescript": "^4.3.5",
-    "@hyper-hyper-space/core": "0.9.0"
+    "@hyper-hyper-space/core": "0.10.1"
   },
   "dependencies": {
     "tslib": "^2.3.1"
   },
   "peerDependencies": {
-    "@hyper-hyper-space/core": "0.9.0"
+    "@hyper-hyper-space/core": "0.10.1"
   }
 }
