@@ -1,9 +1,9 @@
 {
-  "name": "@hyper-hyper-space/starter-project-ts",
+  "name": "@hyper-hyper-space/wiki-collab",
   "version": "0.0.1",
-  "description": "An empty Hyper Hyper Space project that can be used as a starting point for new datatypes, using TypeScript.",
+  "description": "A Hyper Hyper Space datatype for a collaborative, moderated wiki.",
   "main": "dist/index.js",
-  "repository": "https://github.com/hyperhyperspace/starter-project-ts",
+  "repository": "https://github.com/hyperhyperspace/wiki-collab",
   "author": "Your Name Here",
   "license": "MIT",
   "private": false,

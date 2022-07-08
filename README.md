@@ -1,3 +1,3 @@
-# Hyper Hyper Space Starter Project (typescript)
+# Wiki-collab
 
-This is an empty project you can use to create a new space type for Hyper Hyper Space. Replace the SomeSpace class with your space's root class, customize startSync / stopSync there, and add any support types you need.
+A Hyper Hyper Space datatype for a collaborative, moderated wiki. WIP
