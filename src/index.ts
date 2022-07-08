@@ -1,3 +1,3 @@
 
 
-export * from './model/SomeSpace';
+export * from './model/WikiSpace';

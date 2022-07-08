@@ -1,21 +1,24 @@
-import { HashedObject, MutableReference, SpaceEntryPoint } from '@hyper-hyper-space/core';
+import { HashedObject, Identity, SpaceEntryPoint } from '@hyper-hyper-space/core';
+import { Page } from './Page';
 
+class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
-class SomeSpace extends HashedObject implements SpaceEntryPoint {
+    static className = 'hhs-wiki/v0/WikiSpace';
 
-    static className = 'enter-your-class-name';
+    index?: Page;
 
-    contents: MutableReference<any>;
-
-    constructor() {
+    constructor(owner?: Identity) {
         super();
         
-        this.contents = new MutableReference();
+        if (owner !== undefined) {
+            this.setAuthor(owner);
+
+            this.index = new Page();
+        }
     }
 
     getClassName(): string {
-        // return SomeSpace.className;
-        throw new Error('Method not implemented.');
+        return WikiSpace.className;
     }
     
     init(): void {
@@ -44,4 +47,4 @@ class SomeSpace extends HashedObject implements SpaceEntryPoint {
 
 }
 
-export { SomeSpace };
+export { WikiSpace };
