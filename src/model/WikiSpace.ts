@@ -1,4 +1,4 @@
-import { HashedObject, Identity, SpaceEntryPoint } from '@hyper-hyper-space/core';
+import { HashedObject, Identity, MutableArray, SpaceEntryPoint } from '@hyper-hyper-space/core';
 import { Page } from './Page';
 
 class WikiSpace extends HashedObject implements SpaceEntryPoint {
@@ -6,6 +6,8 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
     static className = 'hhs-wiki/v0/WikiSpace';
 
     index?: Page;
+    
+    pages?: MutableArray<Page>;
 
     constructor(owner?: Identity) {
         super();
@@ -13,7 +15,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         if (owner !== undefined) {
             this.setAuthor(owner);
 
-            this.index = new Page();
+            this.index = new Page('/', this);
         }
     }
 
