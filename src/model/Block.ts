@@ -1,9 +1,11 @@
-import { ClassRegistry, HashedObject } from '@hyper-hyper-space/core';
+import { ClassRegistry, HashedObject, MutableReference } from '@hyper-hyper-space/core';
 
 
 class Block extends HashedObject {
 
     static className = 'hhs-wiki/v0/Block';
+    
+    contents = new MutableReference<string>();
 
     getClassName(): string {
         return Block.className;

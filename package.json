@@ -12,16 +12,39 @@
   "scripts": {
     "build": "npx tsc",
     "clean": "rm -rf ./dist/*",
-    "winclean": "if exist dist (rmdir dist /s /q) && mkdir dist"
+    "winclean": "if exist dist (rmdir dist /s /q) && mkdir dist",
+    "test": "npx jest",
+    "test-debug": "npx --node-arg inspect jest"
   },
   "devDependencies": {
     "typescript": "^4.3.5",
-    "@hyper-hyper-space/core": "0.10.1"
+    "@hyper-hyper-space/core": "0.10.1",
+    "@types/jest": "^26.0.19",
+    "ts-jest": "^26.4.4",
+    "jest": "^26.6.3"
   },
   "dependencies": {
     "tslib": "^2.3.1"
   },
   "peerDependencies": {
     "@hyper-hyper-space/core": "0.10.1"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "jsdom",
+    "verbose": true,
+    "modulePaths": [
+      "<rootDir>/test",
+      "<rootDir>/src",
+      "<rootDir>/node_modules/**"
+    ],
+    "roots": [
+      "./test"
+    ],
+    "globals": {
+      "ts-jest": {
+        "tsconfig": "tsconfig.json"
+      }
+    }
   }
 }
