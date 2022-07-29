@@ -37,7 +37,7 @@ describeProxy('WikiSpace', () => {
     })
 
     test('new WikiSpace (peer A)', async () => {
-        wikiSpaceA = new WikiSpace(idA) 
+        wikiSpaceA = new WikiSpace(idA)
         wikiSpaceA.setResources(resourcesA)
         await resourcesA.store.save(wikiSpaceA)
         expect(wikiSpaceA).toBeDefined()
@@ -60,24 +60,32 @@ describeProxy('WikiSpace', () => {
         // await resourcesA.store.save(wikiSpaceA)
     })
 
-    jest.setTimeout(20000)
+    
+
+    jest.setTimeout(30000)
     test('WikiSpace sync (peer B)', async () => {
+
+        await new Promise((r) => setTimeout(r, 1000));
+
         let spaceA = Space.fromEntryPoint(wikiSpaceA, resourcesA);
         await spaceA.entryPoint
         const wikiSpaceCode = await spaceA.getWordCoding();
         console.log(wikiSpaceCode)
 
         let spaceB = Space.fromWordCode(wikiSpaceCode, resourcesB);
-        let wikiSpaceB = await spaceB.entryPoint;
+        let wikiSpaceB = await spaceB.entryPoint as WikiSpace;
         wikiSpaceB.setResources(resourcesB);
         resourcesB.store.save(wikiSpaceB);
         
         wikiSpaceB.startSync();
-        await new Promise((r) => setTimeout(r, 8000));
+        await new Promise((r) => setTimeout(r, 12000));
 
-        // console.log('wikiSpaceB', wikiSpaceB)        
-        expect(wikiSpaceB._index.blocks).toBeDefined()
-        expect(wikiSpaceB._index.blocks.valueAt(0)).toBe('lol')
+        // console.log('wikiSpaceB', wikiSpaceB)
+        
+        const index = wikiSpaceB.pages?.get(wikiSpaceB._index.hash());
+
+        expect(index.blocks).toBeDefined()
+        expect(index.blocks.valueAt(0).contents.getValue()).toBe('lol')
 
     })
 })
