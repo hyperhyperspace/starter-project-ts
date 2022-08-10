@@ -25,7 +25,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
     constructor(owner?: Identity) {
         super();
 
-        // this.pages = new MutableSet<Page>();
+        this.setRandomId();
 
         if (owner !== undefined) {
             this.setAuthor(owner);
