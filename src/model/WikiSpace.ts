@@ -1,4 +1,5 @@
 import {
+    ClassRegistry,
     HashedObject,
     Identity,
     MeshNode,
@@ -149,7 +150,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
         await this.loadAndWatchForChanges();
 
-        for (let page of this.pages?.values()!) {
+        for (let page of (this.pages?.values() || [])) {
             console.log('starting sync page')
             this._node?.sync(page);
             page.addMutationObserver(this._pagesObserver);
@@ -164,7 +165,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
     }
 
     async stopSync(): Promise<void> {
-        for (let page of this.pages?.values()!) {
+        for (let page of (this.pages?.values() || [])) {
             console.log('stopping sync page')
             this._node?.stopSync(page);
             await page.dontWatchForChanges();
@@ -188,5 +189,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         return this.pages as MutableSet<Page>;
     }
 }
+
+ClassRegistry.register(WikiSpace.className, WikiSpace);
 
 export { WikiSpace };
