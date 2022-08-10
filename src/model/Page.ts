@@ -34,6 +34,11 @@ class Page extends HashedObject {
     }
   }
 
+  addBlock() {
+    const block = new Block();
+    this.blocks?.push(block);
+  }
+
   getClassName(): string {
     return Page.className;
   }

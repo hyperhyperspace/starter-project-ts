@@ -188,6 +188,13 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
     getPages() {
         return this.pages as MutableSet<Page>;
     }
+    
+    navigateTo(pageName: string) {
+        const page = new Page(pageName, this);
+        this.pages?.add(page);
+        // this.pages?.save()
+        return page;
+    }
 }
 
 ClassRegistry.register(WikiSpace.className, WikiSpace);
