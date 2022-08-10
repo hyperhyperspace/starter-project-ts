@@ -34,9 +34,17 @@ class Page extends HashedObject {
     }
   }
 
-  addBlock() {
+  async addBlock() {
     const block = new Block();
-    this.blocks?.push(block);
+    if (this.hasResources()) {
+      block.setResources(this.getResources()!);
+    }
+    await this.blocks?.push(block);
+    await this.blocks?.saveQueuedOps();
+    
+    await this.wiki?.pages?.add(this);
+    await this.wiki?.pages?.save();
+    return block;
   }
 
   getClassName(): string {

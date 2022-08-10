@@ -189,10 +189,22 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         return this.pages as MutableSet<Page>;
     }
     
-    navigateTo(pageName: string) {
-        const page = new Page(pageName, this);
+    async navigateTo(pageName: string) {
+        let page = new Page(pageName, this);
+        if (this.hasResources()) {
+          page.setResources(this.getResources()!);
+        }
         this.pages?.add(page);
-        // this.pages?.save()
+        page.save();
+
+        const loadedPage = await this.getStore().load(page.hash(), true) as Page
+        if (loadedPage !== undefined) {
+          page = loadedPage
+        }
+        
+        await Promise.all((page.blocks?.contents() || []).map(block => block?.loadAllChanges()) || [])
+
+        // this.pages?.saveQueuedOps()
         return page;
     }
 }
