@@ -190,27 +190,32 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
     }
     
     async navigateTo(pageName: string) {
-        const existingPage = [...this.pages?.values()!].find((page) => page.name === pageName)
-        if (pageName !== undefined && existingPage) {
-            // is there already a `Page` object currently syncing? use that one!
-            return existingPage
-        }
 
+        // create the page we want to navigate to, so we can figure out its hash
         let page = new Page(pageName, this);
-        if (this.hasResources()) {
-          page.setResources(this.getResources()!);
-        }
-        this.pages?.add(page);
-        page.save();
 
-        const loadedPage = await this.getStore().load(page.hash(), true, true) as Page
-        if (loadedPage !== undefined) {
-            page = loadedPage;
-        }
-        
-        await Promise.all((page.blocks?.contents() || []).map(block => block?.loadAllChanges()) || [])
+        // and try to get it from the wiki
+        const existingPage = this.pages?.get(page.hash());
 
-        // this.pages?.saveQueuedOps()
+        if (existingPage !== undefined) {
+            page = existingPage;
+        } else {
+
+            // if the page is not there, add it to the wiki
+
+            if (this.hasResources()) {
+                page.setResources(this.getResources()!);
+            }
+
+            await this.pages?.add(page);
+            await page.save();
+
+            // it's important that we return the same page instance
+            // as we're adding, since that one will be kept up to
+            // date by the sync (will loadAndWatchForChanges automatically)
+
+        }
+
         return page;
     }
 }
