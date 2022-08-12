@@ -16,6 +16,7 @@ class Block extends HashedObject {
     }
 
     async validate(_references: Map<string, HashedObject>): Promise<boolean> {
+        // todo: editing authorization
         return true;
     }
 

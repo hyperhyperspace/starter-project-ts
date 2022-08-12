@@ -24,7 +24,7 @@ class Page extends HashedObject {
       this.setId(
         Hashing.forString(this.wiki.hash() + "_" + this.name)
       );
-      this.addDerivedField('blocks', new MutableArray<Block>())
+      this.addDerivedField('blocks', new MutableArray<Block>({duplicates: false, writer: undefined}))
     }
 
     if (owner !== undefined) {
@@ -45,6 +45,19 @@ class Page extends HashedObject {
     await this.wiki?.pages?.add(this);
     await this.wiki?.pages?.save();
     return block;
+  }
+  
+  async moveBlock(from: number, to: number) {
+    console.log('moving block from', from, 'to', to)
+    const block = this.blocks?.valueAt(from);
+    if (block) {
+        await this.blocks?.deleteAt(from); // shouldn't need this
+        await this.blocks?.insertAt(block, to);
+        await this.blocks?.save();
+        return to
+    } else {
+      return from
+    }
   }
 
   getClassName(): string {
