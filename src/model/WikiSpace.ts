@@ -190,6 +190,12 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
     }
     
     async navigateTo(pageName: string) {
+        const existingPage = [...this.pages?.values()!].find((page) => page.name === pageName)
+        if (pageName !== undefined && existingPage) {
+            // is there already a `Page` object currently syncing? use that one!
+            return existingPage
+        }
+
         let page = new Page(pageName, this);
         if (this.hasResources()) {
           page.setResources(this.getResources()!);
@@ -199,7 +205,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
         const loadedPage = await this.getStore().load(page.hash(), true, true) as Page
         if (loadedPage !== undefined) {
-          page = loadedPage
+            page = loadedPage;
         }
         
         await Promise.all((page.blocks?.contents() || []).map(block => block?.loadAllChanges()) || [])
