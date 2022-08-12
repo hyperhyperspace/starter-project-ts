@@ -197,7 +197,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         this.pages?.add(page);
         page.save();
 
-        const loadedPage = await this.getStore().load(page.hash(), true) as Page
+        const loadedPage = await this.getStore().load(page.hash(), true, true) as Page
         if (loadedPage !== undefined) {
           page = loadedPage
         }
