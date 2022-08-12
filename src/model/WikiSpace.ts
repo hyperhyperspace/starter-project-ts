@@ -2,6 +2,7 @@ import {
     ClassRegistry,
     HashedObject,
     Identity,
+    Lock,
     MeshNode,
     MutableContentEvents,
     MutableSet,
@@ -22,6 +23,9 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
     _pagesObserver: MutationObserver;
     _node?: MeshNode;
 
+    _processEventLock: Lock;
+    _pendingEvents: Array<MutationEvent>;
+
     constructor(owner?: Identity) {
         super();
 
@@ -38,7 +42,13 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
             this.init();
         }
 
+        this._processEventLock = new Lock();
+        this._pendingEvents    = [];
+
         this._pagesObserver = (ev: MutationEvent) => {
+
+            this._pendingEvents.push(ev);
+            this.processPendingEvents();
 
             /*
             console.log('observer!')
@@ -49,53 +59,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
             console.log('action:  ' + ev.action);
             */
             
-            if (ev.emitter === this.pages) {
-                if (ev.action === MutableContentEvents.AddObject) {
-                    if (this._node) {
-                        console.log('starting to sync page (obs)')
-                        const page = ev.data as Page;
-                        this._node.sync(page);
-                        page.addMutationObserver(this._pagesObserver);
-                        page.loadAndWatchForChanges();
-                        
-                        for (let block of page.blocks?.contents()!) {
-                            console.log('starting sync block (obs-init)')
-                            this._node?.sync(block);
-                            block.loadAndWatchForChanges();
-                        }
-                    }
-                } else if (ev.action === MutableContentEvents.RemoveObject) {
-                    if (this._node) {
-                        console.log('stopping page syncing (obs)')
-                        const page = ev.data as Page;
-                        this._node.stopSync(page);
-                        page.dontWatchForChanges();
-                        page.removeMutationObserver(this._pagesObserver);
-                        for (let block of page.blocks?.contents()!) {
-                            console.log('stopping sync block (obs-init)')
-                            this._node?.stopSync(block);
-                            block.dontWatchForChanges();
-                        }
-
-                    }
-                }
-            }
-            if (ev.data instanceof Block) {
-                const block = ev.data as Block;
-                if (ev.action === MutableContentEvents.AddObject) {
-                    if (this._node) {
-                        console.log('starting to sync block (obs)')
-                        this._node.sync(block);
-                        block.loadAndWatchForChanges();
-                    }
-                } else if (ev.action === MutableContentEvents.RemoveObject) {
-                    if (this._node) {
-                        console.log('stopping block syncing (obs)')
-                        this._node.stopSync(block);
-                        block.dontWatchForChanges();
-                    }
-                }
-            }
+            
 
             /*console.log('leaving observer!')*/
         };
@@ -217,6 +181,72 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         }
 
         return page;
+    }
+
+    private async processPendingEvents() {
+        if (this._processEventLock.acquire()) {
+            try {
+
+                while (this._pendingEvents.length > 0) {
+                    const next = this._pendingEvents.shift() as MutationEvent;
+                    await this.processMutationEvent(next);
+                }
+
+            } finally {
+                this._processEventLock.release();
+            }
+        }
+    }
+
+    private async processMutationEvent(ev: MutationEvent) {
+
+        if (ev.emitter === this.pages) {
+            if (ev.action === MutableContentEvents.AddObject) {
+                if (this._node) {
+                    console.log('starting to sync page (obs)')
+                    const page = ev.data as Page;
+                    await this._node.sync(page);
+                    page.addMutationObserver(this._pagesObserver);
+                    await page.loadAndWatchForChanges();
+                    
+                    for (let block of page.blocks?.contents()!) {
+                        console.log('starting sync block (obs-init)')
+                        await this._node?.sync(block);
+                        await block.loadAndWatchForChanges();
+                    }
+                }
+            } else if (ev.action === MutableContentEvents.RemoveObject) {
+                if (this._node) {
+                    console.log('stopping page syncing (obs)')
+                    const page = ev.data as Page;
+                    this._node.stopSync(page);
+                    page.dontWatchForChanges();
+                    page.removeMutationObserver(this._pagesObserver);
+                    for (let block of page.blocks?.contents()!) {
+                        console.log('stopping sync block (obs-init)')
+                        await this._node?.stopSync(block);
+                        block.dontWatchForChanges();
+                    }
+
+                }
+            }
+        }
+        if (ev.data instanceof Block) {
+            const block = ev.data as Block;
+            if (ev.action === MutableContentEvents.AddObject) {
+                if (this._node) {
+                    console.log('starting to sync block (obs)')
+                    await this._node.sync(block);
+                    await block.loadAndWatchForChanges();
+                }
+            } else if (ev.action === MutableContentEvents.RemoveObject) {
+                if (this._node) {
+                    console.log('stopping block syncing (obs)')
+                    await this._node.stopSync(block);
+                    block.dontWatchForChanges();
+                }
+            }
+        }
     }
 }
 
