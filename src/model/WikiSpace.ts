@@ -79,7 +79,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         // After your object is sent over the network and reconstructed on another peer, or
         // after loading it from the store, this method will be called to perform any necessary
         // initialization.
-        this.pages?.cascadeMutableContentEvents();
+        //this.pages?.cascadeMutableContentEvents();
         this.addMutationObserver(this._pagesObserver);
         if (this._index === undefined) {
             this._index = new Page("/", this);
@@ -125,12 +125,12 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
             for (let page of (this.pages?.values() || [])) {
                 console.log('starting sync page ' + page?.getLastHash())
                 await this._node?.sync(page);
-                page.addMutationObserver(this._pagesObserver);
+                //page.addMutationObserver(this._pagesObserver);
                 await page.loadAndWatchForChanges();
                 for (let block of page.blocks?.contents()!) {
                     console.log('starting sync block ' + block?.getLastHash())
                     await this._node?.sync(block);
-                    block.cascadeMutableContentEvents();
+                    //block.cascadeMutableContentEvents();
                     await block.loadAndWatchForChanges();
                 }
             }
@@ -227,9 +227,10 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
             if (ev.action === MutableContentEvents.AddObject) {
                 if (this._node) {
                     const page = ev.data as Page;
+
                     if (this._node) console.log('starting to sync page (obs) ' + page?.getLastHash());
                     await this._node.sync(page);
-                    page.addMutationObserver(this._pagesObserver);
+                    //page.addMutationObserver(this._pagesObserver);
                     await page.loadAndWatchForChanges();
                     
                     for (let block of page.blocks?.contents()!) {
@@ -244,7 +245,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
                     if (this._node) console.log('stopping page syncing (obs) ' + page?.getLastHash())
                     this._node.stopSync(page);
                     page.dontWatchForChanges();
-                    page.removeMutationObserver(this._pagesObserver);
+                    //page.removeMutationObserver(this._pagesObserver);
                     for (let block of page.blocks?.contents()!) {
                         if (this._node) console.log('stopping sync block (obs-init) ' + block?.getLastHash())
                         await this._node?.stopSync(block);
