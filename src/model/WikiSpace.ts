@@ -96,8 +96,6 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
     async startSync(): Promise<void> {
 
-        console.log('starting sync of wiki ' + this.getLastHash());
-
         let resources = this.getResources();
 
         if (resources === undefined) {
@@ -116,47 +114,56 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
             );
         }
 
-        this._node = new MeshNode(resources);
+        if (this._node === undefined) {
 
-        this._node.broadcast(this);
-        this._node.sync(this);
+            console.log('starting sync of wiki ' + this.getLastHash());
 
-        await this.loadAndWatchForChanges();
+            this._node = new MeshNode(resources);
 
-        for (let page of (this.pages?.values() || [])) {
-            console.log('starting sync page ' + page?.getLastHash())
-            this._node?.sync(page);
-            page.addMutationObserver(this._pagesObserver);
-            await page.loadAndWatchForChanges();
-            for (let block of page.blocks?.contents()!) {
-                console.log('starting sync block ' + block?.getLastHash())
-                this._node?.sync(block);
-                block.cascadeMutableContentEvents();
-                await block.loadAndWatchForChanges();
+            await this._node.broadcast(this);
+            await this._node.sync(this);
+
+            await this.loadAndWatchForChanges();
+
+            for (let page of (this.pages?.values() || [])) {
+                console.log('starting sync page ' + page?.getLastHash())
+                await this._node?.sync(page);
+                page.addMutationObserver(this._pagesObserver);
+                await page.loadAndWatchForChanges();
+                for (let block of page.blocks?.contents()!) {
+                    console.log('starting sync block ' + block?.getLastHash())
+                    await this._node?.sync(block);
+                    block.cascadeMutableContentEvents();
+                    await block.loadAndWatchForChanges();
+                }
             }
-        }
 
-        console.log('done starting sync of wiki ' + this.getLastHash());
+            console.log('done starting sync of wiki ' + this.getLastHash());
+        }
     }
 
     async stopSync(): Promise<void> {
 
-        console.log('stopping sync of wiki ' + this.getLastHash());
+        if (this._node !== undefined) {
 
-        for (let page of (this.pages?.values() || [])) {
-            console.log('stopping sync page ' + page?.getLastHash())
-            this._node?.stopSync(page);
-            await page.dontWatchForChanges();
-            for (let block of page.blocks?.contents()!) {
-                console.log('stopping sync block ' + block?.getLastHash())
-                this._node?.stopSync(block);
-                await block.dontWatchForChanges();
+            console.log('stopping sync of wiki ' + this.getLastHash());
+
+            for (let page of (this.pages?.values() || [])) {
+                console.log('stopping sync page ' + page?.getLastHash())
+                await this._node?.stopSync(page);
+                await page.dontWatchForChanges();
+                for (let block of page.blocks?.contents()!) {
+                    console.log('stopping sync block ' + block?.getLastHash())
+                    await this._node?.stopSync(block);
+                    await block.dontWatchForChanges();
+                }
             }
-        }
 
-        this._node?.stopBroadcast(this);
-        this._node?.stopSync(this);
-        this._node = undefined;
+            await this._node?.stopBroadcast(this);
+            await this._node?.stopSync(this);
+            this._node = undefined;
+
+        }
 
         console.log('done stopping sync of wiki ' + this.getLastHash());
     }
