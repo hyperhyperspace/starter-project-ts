@@ -2,15 +2,21 @@ import {
     ClassRegistry,
     HashedObject,
     Identity,
+    LinkupAddress,
     Lock,
     MeshNode,
+    MutableArray,
     MutableContentEvents,
+    MutableReference,
     MutableSet,
     MutationEvent,
     MutationObserver,
+    ObjectDiscoveryPeerSource,
+    PeerGroupInfo,
     Resources,
     // Resources,
     SpaceEntryPoint,
+    SyncMode,
 } from "@hyper-hyper-space/core";
 import { Block } from "./Block";
 import { Page } from "./Page";
@@ -26,6 +32,8 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
     _processEventLock: Lock;
     _pendingEvents: Array<MutationEvent>;
+
+    _peerGroup?: PeerGroupInfo;
 
     constructor(owner?: Identity) {
         super();
@@ -79,7 +87,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         // After your object is sent over the network and reconstructed on another peer, or
         // after loading it from the store, this method will be called to perform any necessary
         // initialization.
-        //this.pages?.cascadeMutableContentEvents();
+        this.pages?.cascadeMutableContentEvents();
         this.addMutationObserver(this._pagesObserver);
         if (this._index === undefined) {
             this._index = new Page("/", this);
@@ -122,21 +130,32 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
             this._node = new MeshNode(resources);
 
+            const localPeer  = resources.getPeersForDiscovery()[0];
+            const peerSource = new ObjectDiscoveryPeerSource(resources.mesh, this, resources.config.linkupServers, LinkupAddress.fromURL(localPeer.endpoint, localPeer.identity), resources.getEndointParserForDiscovery());
+            
+            this._peerGroup = {
+                id: this.getLastHash(),
+                localPeer: localPeer,
+                peerSource: peerSource
+            };
+
+            const peerGroup = this._peerGroup;
+
             for (let page of (this.pages?.values() || [])) {
                 console.log('starting sync page ' + page?.getLastHash())
-                await this._node?.sync(page);
-                //page.addMutationObserver(this._pagesObserver);
+                await this._node?.sync(page.blocks as MutableArray<Block>, SyncMode.single, peerGroup);
+                page.addMutationObserver(this._pagesObserver);
                 await page.loadAndWatchForChanges();
                 for (let block of page.blocks?.contents()!) {
                     console.log('starting sync block ' + block?.getLastHash())
-                    await this._node?.sync(block);
-                    //block.cascadeMutableContentEvents();
+                    await this._node?.sync(block.contents as MutableReference<string>, SyncMode.single, peerGroup);
+                    block.cascadeMutableContentEvents();
                     await block.loadAndWatchForChanges();
                 }
             }
 
             await this._node.broadcast(this);
-            await this._node.sync(this);
+            await this._node.sync(this.pages as MutableSet<Page>, SyncMode.single, peerGroup);
 
             console.log('done starting sync of wiki ' + this.getLastHash());
         }
@@ -150,17 +169,17 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
             for (let page of (this.pages?.values() || [])) {
                 console.log('stopping sync page ' + page?.getLastHash())
-                await this._node?.stopSync(page);
+                await this._node?.stopSync(page.blocks as MutableArray<Block>, this._peerGroup?.id as string);
                 await page.dontWatchForChanges();
                 for (let block of page.blocks?.contents()!) {
                     console.log('stopping sync block ' + block?.getLastHash())
-                    await this._node?.stopSync(block);
+                    await this._node?.stopSync(block.contents as MutableReference<string>, this._peerGroup?.id as string);
                     await block.dontWatchForChanges();
                 }
             }
 
             await this._node?.stopBroadcast(this);
-            await this._node?.stopSync(this);
+            await this._node?.stopSync(this.pages as MutableSet<Page>, this._peerGroup?.id as string);
             this._node = undefined;
 
         }
@@ -229,13 +248,13 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
                     const page = ev.data as Page;
 
                     if (this._node) console.log('starting to sync page (obs) ' + page?.getLastHash());
-                    await this._node.sync(page);
-                    //page.addMutationObserver(this._pagesObserver);
+                    await this._node.sync(page.blocks as MutableArray<Block>, SyncMode.single, this._peerGroup);
+                    page.addMutationObserver(this._pagesObserver);
                     await page.loadAndWatchForChanges();
                     
                     for (let block of page.blocks?.contents()!) {
                         if (this._node) console.log('starting sync block (obs-init) ' + block?.getLastHash());
-                        await this._node?.sync(block);
+                        await this._node?.sync(block.contents as MutableReference<string>, SyncMode.single, this._peerGroup);
                         await block.loadAndWatchForChanges();
                     }
                 }
@@ -243,12 +262,12 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
                 if (this._node) {
                     const page = ev.data as Page;
                     if (this._node) console.log('stopping page syncing (obs) ' + page?.getLastHash())
-                    this._node.stopSync(page);
+                    this._node.stopSync(page.blocks as MutableArray<Block>, this._peerGroup?.id);
                     page.dontWatchForChanges();
-                    //page.removeMutationObserver(this._pagesObserver);
+                    page.removeMutationObserver(this._pagesObserver);
                     for (let block of page.blocks?.contents()!) {
                         if (this._node) console.log('stopping sync block (obs-init) ' + block?.getLastHash())
-                        await this._node?.stopSync(block);
+                        await this._node?.stopSync(block.contents as MutableReference<string>, this._peerGroup?.id);
                         block.dontWatchForChanges();
                     }
 
@@ -260,13 +279,13 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
             if (ev.action === MutableContentEvents.AddObject) {
                 if (this._node) {
                     if (this._node) console.log('starting to sync block (obs) ' + block?.getLastHash())
-                    await this._node.sync(block);
+                    await this._node?.sync(block.contents as MutableReference<string>, SyncMode.single, this._peerGroup);
                     await block.loadAndWatchForChanges();
                 }
             } else if (ev.action === MutableContentEvents.RemoveObject) {
                 if (this._node) {
                     if (this._node) console.log('stopping block syncing (obs) ' + block?.getLastHash())
-                    await this._node.stopSync(block);
+                    await this._node.stopSync(block.contents as MutableReference<string>, this._peerGroup?.id);
                     block.dontWatchForChanges();
                 }
             }
