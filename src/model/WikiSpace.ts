@@ -194,7 +194,41 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
     getPages() {
         return this.pages as MutableSet<Page>;
     }
+
+    hasPage(pageName: string) {
+        return this.getPage(pageName) !== undefined;
+    }
     
+    getPage(pageName: string) {
+
+        // create the page we want to navigate to, so we can figure out its hash
+        let page = new Page(pageName, this);
+
+        // and try to get it from the wiki
+        const existingPage = this.pages?.get(page.hash());
+
+        return existingPage;
+    }
+
+    createPage(pageName: string) {
+        const page = new Page(pageName, this);
+
+        if (this.hasResources()) {
+            page.setResources(this.getResources()!);
+        }
+
+        return page;
+    }
+
+    async addPage(page: Page) {
+        if (page.wiki !== this) {
+            throw new Error('Trying to add a page blonging to a different wiki');
+        }
+
+        await this.pages?.add(page);
+        await this.pages?.save();
+    }
+
     async navigateTo(pageName: string) {
 
         // create the page we want to navigate to, so we can figure out its hash
