@@ -53,7 +53,7 @@ class Page extends HashedObject {
     console.log('moving block from', from, 'to', to)
     const block = this.blocks?.valueAt(from);
     if (block) {
-        await this.blocks?.deleteAt(from); // shouldn't need this
+        //await this.blocks?.deleteAt(from); // shouldn't need this - I think we don't!
         await this.blocks?.insertAt(block, to);
         await this.blocks?.save();
         return to
