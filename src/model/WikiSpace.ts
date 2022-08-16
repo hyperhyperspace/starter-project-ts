@@ -1,6 +1,7 @@
 import {
     ClassRegistry,
     HashedObject,
+    HashedSet,
     Identity,
     LinkupAddress,
     Lock,
@@ -13,7 +14,6 @@ import {
     MutationObserver,
     ObjectDiscoveryPeerSource,
     PeerGroupInfo,
-    Resources,
     // Resources,
     SpaceEntryPoint,
     SyncMode,
@@ -24,9 +24,14 @@ import { Page } from "./Page";
 class WikiSpace extends HashedObject implements SpaceEntryPoint {
     static className = "hhs-wiki/v0/WikiSpace";
 
+    moderators?: HashedSet<Identity>;
+
     pages?: MutableSet<Page>;
+
+    offendingPages?: MutableSet<Page>;
+    offendingAuthors?: MutableSet<Identity>;
     
-    _index?: Page;
+    //_index?: Page;
     _pagesObserver: MutationObserver;
     _node?: MeshNode;
 
@@ -35,7 +40,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
     _peerGroup?: PeerGroupInfo;
 
-    constructor(owner?: Identity) {
+    constructor(owner?: Identity, moderators?: IterableIterator<Identity>) {
         super();
 
         // this.pages = new MutableSet<Page>();
@@ -43,15 +48,20 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         if (owner !== undefined) {
             this.setAuthor(owner);
 
+            this.moderators = new HashedSet<Identity>(moderators);
+            this.moderators.add(owner);
+
             this.setRandomId();
-            this.addDerivedField('pages', new MutableSet<Page>())
-            this._index = new Page("/", this);
+            this.addDerivedField('pages', new MutableSet<Page>());
+            this.addDerivedField('offendingPages', new MutableSet<Page>());
+            this.addDerivedField('offendingAuthors', new MutableSet<Identity>());
+            /*this._index = new Page("/", this);
 
             if (this.hasResources()) {
                 this._index.setResources(this.getResources() as Resources);
             }
 
-            this.pages?.add(this._index);
+            this.pages?.add(this._index);*/
 
             this.init();
         }
@@ -89,9 +99,9 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         // initialization.
         this.pages?.cascadeMutableContentEvents();
         this.addMutationObserver(this._pagesObserver);
-        if (this._index === undefined) {
+        /*if (this._index === undefined) {
             this._index = new Page("/", this);
-        }
+        }*/
         
     }
 
@@ -187,9 +197,10 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         console.log('done stopping sync of wiki ' + this.getLastHash());
     }
 
+    /*
     getIndex() {
         return this._index as Page;
-    }
+    }*/
 
     getPages() {
         return this.pages as MutableSet<Page>;
