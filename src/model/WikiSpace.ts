@@ -221,6 +221,22 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         return existingPage;
     }
 
+    getAllowedPages(): Set<Page> {
+        const allowed = new Set<Page>();
+
+        for (const page of this.pages?.values()!) {
+            if (!this.offendingPages?.has(page)) {
+                allowed.add(page);
+            }
+        }
+
+        return allowed;
+    }
+
+    isAllowedIdentity(id: Identity) {
+        return !this.offendingAuthors?.has(id);
+    }
+
     createPage(pageName: string) {
         const page = new Page(pageName, this);
 
