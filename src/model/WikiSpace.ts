@@ -26,6 +26,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
     moderators?: HashedSet<Identity>;
 
+    title?: MutableReference<string>;
     pages?: MutableSet<Page>;
 
     offendingPages?: MutableSet<Page>;
@@ -52,9 +53,11 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
             this.moderators.add(owner);
 
             this.setRandomId();
+            this.addDerivedField('title', new MutableReference<string>({writers: this.moderators.values()}));
             this.addDerivedField('pages', new MutableSet<Page>());
-            this.addDerivedField('offendingPages', new MutableSet<Page>());
-            this.addDerivedField('offendingAuthors', new MutableSet<Identity>());
+            this.addDerivedField('offendingPages', new MutableSet<Page>({writers: this.moderators.values()}));
+            this.addDerivedField('offendingAuthors', new MutableSet<Identity>({writers: this.moderators.values()}));
+
             /*this._index = new Page("/", this);
 
             if (this.hasResources()) {
