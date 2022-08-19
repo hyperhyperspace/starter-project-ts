@@ -4,8 +4,15 @@ import { ClassRegistry, HashedObject, MutableReference } from '@hyper-hyper-spac
 class Block extends HashedObject {
 
     static className = 'hhs-wiki/v0/Block';
-    
-    contents = new MutableReference<string>();
+
+    contents?: MutableReference<string>;
+
+    constructor() {
+        super();
+
+        this.setRandomId();
+        this.addDerivedField('contents', new MutableReference<string>())
+    }
 
     getClassName(): string {
         return Block.className;

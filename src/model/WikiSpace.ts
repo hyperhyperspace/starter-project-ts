@@ -31,7 +31,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
     offendingPages?: MutableSet<Page>;
     offendingAuthors?: MutableSet<Identity>;
-    
+
     //_index?: Page;
     _pagesObserver: MutationObserver;
     _node?: MeshNode;
@@ -41,33 +41,10 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
     _peerGroup?: PeerGroupInfo;
 
-    constructor(owner?: Identity, moderators?: IterableIterator<Identity>) {
+    constructor(owner?: Identity, title?: string, moderators?: IterableIterator<Identity>) {
         super();
 
         // this.pages = new MutableSet<Page>();
-
-        if (owner !== undefined) {
-            this.setAuthor(owner);
-
-            this.moderators = new HashedSet<Identity>(moderators);
-            this.moderators.add(owner);
-
-            this.setRandomId();
-            this.addDerivedField('title', new MutableReference<string>({writers: this.moderators.values()}));
-            this.addDerivedField('pages', new MutableSet<Page>());
-            this.addDerivedField('offendingPages', new MutableSet<Page>({writers: this.moderators.values()}));
-            this.addDerivedField('offendingAuthors', new MutableSet<Identity>({writers: this.moderators.values()}));
-
-            /*this._index = new Page("/", this);
-
-            if (this.hasResources()) {
-                this._index.setResources(this.getResources() as Resources);
-            }
-
-            this.pages?.add(this._index);*/
-
-            this.init();
-        }
 
         this._processEventLock = new Lock();
         this._pendingEvents    = [];
@@ -90,6 +67,38 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
             /*console.log('leaving observer!')*/
         };
+
+        if (owner !== undefined) {
+
+            this.setAuthor(owner);
+
+            this.moderators = new HashedSet<Identity>(moderators);
+            this.moderators.add(owner);
+
+            this.setRandomId();
+            this.addDerivedField('title', new MutableReference<string>({writers: this.moderators.values()}));
+            this.addDerivedField('pages', new MutableSet<Page>());
+            this.addDerivedField('offendingPages', new MutableSet<Page>({writers: this.moderators.values()}));
+            this.addDerivedField('offendingAuthors', new MutableSet<Identity>({writers: this.moderators.values()}));
+
+            if (title !== undefined) {
+                this.title?.setValue(title);
+            }
+
+            this.pages?.add(this.createPage('Welcome'));
+
+            /*this._index = new Page("/", this);
+
+            if (this.hasResources()) {
+                this._index.setResources(this.getResources() as Resources);
+            }
+
+            this.pages?.add(this._index);*/
+
+            this.init();
+
+            
+        }
     }
 
     getClassName(): string {
@@ -248,6 +257,18 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         }
 
         return page;
+    }
+
+    async createWelcomePage(title: string) {
+        const welcomePage = this.createPage('Welcome');
+        const welcomeBlock = new Block();
+        welcomeBlock.setId('welcome-block-for-' + this.hash());
+        await welcomeBlock.contents?.setValue('This is the first page of "' + title + '".');
+        await this.pages?.add(welcomePage);
+        await this.pages?.save();
+        await welcomePage.blocks?.push(welcomeBlock);
+        await welcomePage.save();
+        await welcomeBlock.contents?.save();
     }
 
     async addPage(page: Page) {

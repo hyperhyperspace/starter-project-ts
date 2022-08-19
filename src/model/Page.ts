@@ -2,7 +2,6 @@ import {
   ClassRegistry,
   HashedObject,
   Hashing,
-  Identity,
   MutableArray,
 } from "@hyper-hyper-space/core";
 import { Block } from "./Block";
@@ -14,8 +13,9 @@ class Page extends HashedObject {
   wiki?: WikiSpace;
   name?: string;
   blocks?: MutableArray<Block>;
+  titleBlock?: Block;
 
-  constructor(name?: string, wiki?: WikiSpace, owner?: Identity) {
+  constructor(name?: string, wiki?: WikiSpace) {
     super();
 
     if (name !== undefined && wiki !== undefined) {
@@ -24,13 +24,8 @@ class Page extends HashedObject {
       this.setId(
         Hashing.forString(this.wiki.hash() + "_" + this.name)
       );
-      this.addDerivedField('blocks', new MutableArray<Block>({duplicates: false, writer: undefined}))
-    }
-
-    if (owner !== undefined) {
-      this.setAuthor(owner);
-    } else if (this.wiki?.hasAuthor()) {
-      this.setAuthor(this.wiki?.getAuthor()!);
+      this.addDerivedField('blocks', new MutableArray<Block>({duplicates: false, writer: undefined}));
+      this.addDerivedField('titleBlock', new Block());
     }
   }
 
