@@ -32,7 +32,6 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
     offendingPages?: MutableSet<Page>;
     offendingAuthors?: MutableSet<Identity>;
 
-    //_index?: Page;
     _pagesObserver: MutationObserver;
     _node?: MeshNode;
 
@@ -40,6 +39,10 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
     _pendingEvents: Array<MutationEvent>;
 
     _peerGroup?: PeerGroupInfo;
+
+    _synchronizing: boolean;
+    _shouldBeSynchronizing: boolean;
+    _syncLock: Lock;
 
     constructor(owner?: Identity, title?: string, moderators?: IterableIterator<Identity>) {
         super();
@@ -96,9 +99,11 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
             this.pages?.add(this._index);*/
 
             this.init();
-
-            
         }
+
+        this._synchronizing = false;
+        this._shouldBeSynchronizing = false;
+        this._syncLock      = new Lock();
     }
 
     getClassName(): string {
@@ -125,6 +130,34 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
     }
 
     async startSync(): Promise<void> {
+        this._shouldBeSynchronizing = true;
+        await this.updateSyncState();
+    }
+
+    async stopSync(): Promise<void> {
+        this._shouldBeSynchronizing = false;
+        await this.updateSyncState();
+    }
+
+    async updateSyncState() {
+        if (this._syncLock.acquire()) {
+            try {
+                while (this._synchronizing !== this._shouldBeSynchronizing) {
+                    if (this._synchronizing) {
+                        await this.doStopSync();
+                    } else {
+                        await this.doStartSync();
+                    }
+
+                    this._synchronizing = !this._synchronizing;
+                }
+            } finally {
+                this._syncLock.release();
+            }
+        }
+    }
+
+    private async doStartSync(): Promise<void> {
 
         let resources = this.getResources();
 
@@ -183,7 +216,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         }
     }
 
-    async stopSync(): Promise<void> {
+    private async doStopSync(): Promise<void> {
 
         if (this._node !== undefined) {
 
