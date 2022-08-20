@@ -29,12 +29,18 @@ class Page extends HashedObject {
     }
   }
 
-  async addBlock() {
+  async addBlock(idx?: number) {
     const block = new Block();
     if (this.hasResources()) {
       block.setResources(this.getResources()!);
     }
-    await this.blocks?.push(block);
+
+    if (idx === undefined) {
+      await this.blocks?.push(block);
+    } else {
+      await this.blocks?.insertAt(block, idx);
+    }
+    
     await this.blocks?.saveQueuedOps();
     
     if (!this.wiki?.hasPage(this.name as string)) {
