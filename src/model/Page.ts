@@ -4,6 +4,7 @@ import {
   Hashing,
   MutableArray,
 } from "@hyper-hyper-space/core";
+import { BlockType } from "..";
 import { Block } from "./Block";
 import { WikiSpace } from "./WikiSpace";
 
@@ -29,8 +30,10 @@ class Page extends HashedObject {
     }
   }
 
-  async addBlock(idx?: number) {
-    const block = new Block();
+  async addBlock(idx?: number, type?: BlockType) {
+
+    const block = new Block(type);
+    
     if (this.hasResources()) {
       block.setResources(this.getResources()!);
     }
@@ -47,6 +50,7 @@ class Page extends HashedObject {
       await this.wiki?.pages?.add(this);
       await this.wiki?.pages?.save();  
     }
+
     return block;
   }
   

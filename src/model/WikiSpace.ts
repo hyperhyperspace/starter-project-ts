@@ -1,11 +1,15 @@
 import {
     ClassRegistry,
+    Hash,
     HashedObject,
     HashedSet,
     Identity,
     LinkupAddress,
     Lock,
+    Logger,
+    LogLevel,
     MeshNode,
+    MultiMap,
     MutableArray,
     MutableContentEvents,
     MutableReference,
@@ -23,6 +27,8 @@ import { Page } from "./Page";
 
 class WikiSpace extends HashedObject implements SpaceEntryPoint {
     static className = "hhs-wiki/v0/WikiSpace";
+
+    static logger = new Logger(WikiSpace.name, LogLevel.DEBUG);
 
     moderators?: HashedSet<Identity>;
 
@@ -43,6 +49,9 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
     _synchronizing: boolean;
     _shouldBeSynchronizing: boolean;
     _syncLock: Lock;
+
+    _syncingPages: Set<Hash>;
+    _syncingBlocksPerPage: MultiMap<Hash, Hash>;
 
     constructor(owner?: Identity, title?: string, moderators?: IterableIterator<Identity>) {
         super();
@@ -104,6 +113,9 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         this._synchronizing = false;
         this._shouldBeSynchronizing = false;
         this._syncLock      = new Lock();
+
+        this._syncingPages = new Set();
+        this._syncingBlocksPerPage = new MultiMap();
     }
 
     getClassName(): string {
@@ -114,7 +126,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         // After your object is sent over the network and reconstructed on another peer, or
         // after loading it from the store, this method will be called to perform any necessary
         // initialization.
-        this.pages?.cascadeMutableContentEvents();
+        //this.pages?.cascadeMutableContentEvents();
         this.addMutationObserver(this._pagesObserver);
         /*if (this._index === undefined) {
             this._index = new Page("/", this);
@@ -179,7 +191,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
         if (this._node === undefined) {
 
-            console.log('starting sync of wiki ' + this.getLastHash());
+            WikiSpace.logger.debug('Wiki ' + this.getLastHash() + ': starting sync');
 
             await this.loadAndWatchForChanges();
 
@@ -197,12 +209,12 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
             const peerGroup = this._peerGroup;
 
             for (let page of (this.pages?.values() || [])) {
-                console.log('starting sync page ' + page?.getLastHash())
+                WikiSpace.logger.debug('Wiki ' + this.getLastHash() + ': starting sync of page ' + page?.name);
                 await this._node?.sync(page.blocks as MutableArray<Block>, SyncMode.single, peerGroup);
                 page.addMutationObserver(this._pagesObserver);
                 await page.loadAndWatchForChanges();
                 for (let block of page.blocks?.contents()!) {
-                    console.log('starting sync block ' + block?.getLastHash())
+                    console.log('Page ' + page.name + ': starting sync block ' + block?.getLastHash())
                     await this._node?.sync(block.contents as MutableReference<string>, SyncMode.single, peerGroup);
                     block.cascadeMutableContentEvents();
                     await block.loadAndWatchForChanges();
@@ -212,7 +224,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
             await this._node.broadcast(this);
             await this._node.sync(this.pages as MutableSet<Page>, SyncMode.single, peerGroup);
 
-            console.log('done starting sync of wiki ' + this.getLastHash());
+            WikiSpace.logger.debug('Wiki ' + this.getLastHash() + ': done starting sync');
         }
     }
 
