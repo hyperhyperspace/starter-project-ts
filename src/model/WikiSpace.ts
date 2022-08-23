@@ -223,6 +223,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
             await this._node.broadcast(this);
             await this._node.sync(this.pages as MutableSet<Page>, SyncMode.single, peerGroup);
+            await this._node.sync(this.title as MutableReference<string>, SyncMode.single, peerGroup);
 
             WikiSpace.logger.debug('Wiki ' + this.getLastHash() + ': done starting sync');
         }
@@ -247,6 +248,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
             await this._node?.stopBroadcast(this);
             await this._node?.stopSync(this.pages as MutableSet<Page>, this._peerGroup?.id as string);
+            await this._node?.stopSync(this.title as MutableReference<string>, this._peerGroup?.id as string);
             this._node = undefined;
 
         }
