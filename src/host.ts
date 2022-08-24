@@ -1,9 +1,13 @@
 import { Resources, Store, MemoryBackend, Mesh, Space, WordCode } from '@hyper-hyper-space/core';
 import '@hyper-hyper-space/node-env';
 
-import { } from './model/WikiSpace';
-export { } from './model/Block';
-export { } from './model/Page';
+import { WikiSpace } from './model/WikiSpace';
+import { Block } from './model/Block';
+import { Page } from './model/Page';
+
+WikiSpace.className;
+Block.className;
+Page.className;
 
 async function main() {
 
@@ -32,7 +36,8 @@ async function main() {
                 const entryPoint = await space.entryPoint;
                 console.log('found an space of type ' + entryPoint.getClassName());
                 console.log('starting broadcasting & sync...');
-                (await space.entryPoint).startSync();
+                entryPoint.setResources(resources);
+                entryPoint.startSync();
                 console.log('done');
             } catch (e: any) {
                 console.log('failed to start sync:', e);
