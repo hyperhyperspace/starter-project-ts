@@ -14,11 +14,14 @@
     "clean": "rm -rf ./dist/*",
     "winclean": "if exist dist (rmdir dist /s /q) && mkdir dist",
     "test": "npx jest",
-    "test-debug": "npx --node-arg inspect jest"
+    "test-debug": "npx --node-arg inspect jest",
+    "host": "NODE_PATH=\"dist-host\" node ./dist-host/host.js",
+    "build-host": "npx ttsc --project tsconfig.host.json"
   },
   "devDependencies": {
     "typescript": "^4.3.5",
     "@hyper-hyper-space/core": "0.10.1",
+    "@hyper-hyper-space/node-env": "^0.12.0",
     "@types/jest": "^26.0.19",
     "ts-jest": "^26.4.4",
     "jest": "^26.6.3"
