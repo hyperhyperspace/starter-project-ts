@@ -67,6 +67,11 @@ class Page extends HashedObject {
     }
   }
 
+  async removeBlock(block: Block) {
+    this.blocks?.deleteElement(block);
+    this.blocks?.save();
+  }
+
   getClassName(): string {
     return Page.className;
   }
