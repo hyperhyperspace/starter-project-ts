@@ -2,7 +2,7 @@ import {
   ClassRegistry,
   HashedObject,
   Hashing,
-  MutableArray,
+  CausalArray,
 } from "@hyper-hyper-space/core";
 import { BlockType } from "..";
 import { Block } from "./Block";
@@ -13,7 +13,7 @@ class Page extends HashedObject {
 
   wiki?: WikiSpace;
   name?: string;
-  blocks?: MutableArray<Block>;
+  blocks?: CausalArray<Block>;
   titleBlock?: Block;
 
   constructor(name?: string, wiki?: WikiSpace) {
@@ -25,7 +25,7 @@ class Page extends HashedObject {
       this.setId(
         Hashing.forString(this.wiki.hash() + "_" + this.name)
       );
-      this.addDerivedField('blocks', new MutableArray<Block>({duplicates: false, writer: undefined}));
+      this.addDerivedField('blocks', new CausalArray<Block>({duplicates: false, writers: wiki.owners?.values(), mutableWriters: wiki.editors}));
       this.addDerivedField('titleBlock', new Block());
     }
   }

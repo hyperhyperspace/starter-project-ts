@@ -1,4 +1,6 @@
 import {
+    CausalArray,
+    CausalSet,
     ClassRegistry,
     Hash,
     HashedObject,
@@ -10,7 +12,6 @@ import {
     LogLevel,
     MeshNode,
     MultiMap,
-    MutableArray,
     MutableContentEvents,
     MutableReference,
     MutableSet,
@@ -30,7 +31,9 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
     static logger = new Logger(WikiSpace.name, LogLevel.DEBUG);
 
-    moderators?: HashedSet<Identity>;
+    owners?: HashedSet<Identity>;
+    editors?: CausalSet<Identity>;
+    openlyEditable?: CausalSet<boolean>;
 
     title?: MutableReference<string>;
     pages?: MutableSet<Page>;
@@ -53,7 +56,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
     _syncingPages: Set<Hash>;
     _syncingBlocksPerPage: MultiMap<Hash, Hash>;
 
-    constructor(owner?: Identity, title?: string, moderators?: IterableIterator<Identity>) {
+    constructor(owners?: IterableIterator<Identity>, title?: string) {
         super();
 
         // this.pages = new MutableSet<Page>();
@@ -80,18 +83,19 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
             /*console.log('leaving observer!')*/
         };
 
-        if (owner !== undefined) {
+        if (owners !== undefined) {
 
-            this.setAuthor(owner);
+            // this.setAuthor(owner);
 
-            this.moderators = new HashedSet<Identity>(moderators);
-            this.moderators.add(owner);
+            this.owners = new HashedSet<Identity>(owners);
 
             this.setRandomId();
-            this.addDerivedField('title', new MutableReference<string>({writers: this.moderators.values()}));
-            this.addDerivedField('pages', new MutableSet<Page>());
-            this.addDerivedField('offendingPages', new MutableSet<Page>({writers: this.moderators.values()}));
-            this.addDerivedField('offendingAuthors', new MutableSet<Identity>({writers: this.moderators.values()}));
+            this.addDerivedField('editors', new CausalSet<Identity>({writers: this.owners.values()}));
+            this.addDerivedField('openlyEditable', new CausalSet<Boolean>({writers: this.owners.values(), acceptedTypes: ['boolean']}));
+            this.addDerivedField('title', new MutableReference<string>({writers: this.owners.values()}));
+            this.addDerivedField('pages', new CausalSet<Page>({writers: this.owners.values(), mutableWriters: this.editors}));
+            this.addDerivedField('offendingPages', new CausalSet<Page>({writers: this.owners.values()}));
+            this.addDerivedField('offendingAuthors', new CausalSet<Identity>({writers: this.owners.values()}));
 
             if (title !== undefined) {
                 this.title?.setValue(title);
@@ -210,7 +214,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
             for (let page of (this.pages?.values() || [])) {
                 WikiSpace.logger.debug('Wiki ' + this.getLastHash() + ': starting sync of page ' + page?.name);
-                await this._node?.sync(page.blocks as MutableArray<Block>, SyncMode.single, peerGroup);
+                await this._node?.sync(page.blocks as CausalArray<Block>, SyncMode.single, peerGroup);
                 page.addMutationObserver(this._pagesObserver);
                 await page.loadAndWatchForChanges();
                 for (let block of page.blocks?.contents()!) {
@@ -237,7 +241,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
             for (let page of (this.pages?.values() || [])) {
                 console.log('stopping sync page ' + page?.getLastHash())
-                await this._node?.stopSync(page.blocks as MutableArray<Block>, this._peerGroup?.id as string);
+                await this._node?.stopSync(page.blocks as CausalArray<Block>, this._peerGroup?.id as string);
                 await page.dontWatchForChanges();
                 for (let block of page.blocks?.contents()!) {
                     console.log('stopping sync block ' + block?.getLastHash())
@@ -380,7 +384,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
                     const page = ev.data as Page;
 
                     if (this._node) console.log('starting to sync page (obs) ' + page?.getLastHash());
-                    await this._node.sync(page.blocks as MutableArray<Block>, SyncMode.single, this._peerGroup);
+                    await this._node.sync(page.blocks as CausalArray<Block>, SyncMode.single, this._peerGroup);
                     page.addMutationObserver(this._pagesObserver);
                     await page.loadAndWatchForChanges();
                     
@@ -394,7 +398,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
                 if (this._node) {
                     const page = ev.data as Page;
                     if (this._node) console.log('stopping page syncing (obs) ' + page?.getLastHash())
-                    this._node.stopSync(page.blocks as MutableArray<Block>, this._peerGroup?.id);
+                    this._node.stopSync(page.blocks as CausalArray<Block>, this._peerGroup?.id);
                     page.dontWatchForChanges();
                     page.removeMutationObserver(this._pagesObserver);
                     for (let block of page.blocks?.contents()!) {
