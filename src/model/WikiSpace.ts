@@ -36,7 +36,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
     openlyEditable?: CausalSet<boolean>;
 
     title?: MutableReference<string>;
-    pages?: MutableSet<Page>;
+    pages?: CausalSet<Page>;
 
     offendingPages?: MutableSet<Page>;
     offendingAuthors?: MutableSet<Identity>;
@@ -100,8 +100,6 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
             if (title !== undefined) {
                 this.title?.setValue(title);
             }
-
-            this.pages?.add(this.createPage('Welcome'));
 
             /*this._index = new Page("/", this);
 
@@ -226,7 +224,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
             }
 
             await this._node.broadcast(this);
-            await this._node.sync(this.pages as MutableSet<Page>, SyncMode.single, peerGroup);
+            await this._node.sync(this.pages as CausalSet<Page>, SyncMode.single, peerGroup);
             await this._node.sync(this.title as MutableReference<string>, SyncMode.single, peerGroup);
 
             WikiSpace.logger.debug('Wiki ' + this.getLastHash() + ': done starting sync');
@@ -251,7 +249,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
             }
 
             await this._node?.stopBroadcast(this);
-            await this._node?.stopSync(this.pages as MutableSet<Page>, this._peerGroup?.id as string);
+            await this._node?.stopSync(this.pages as CausalSet<Page>, this._peerGroup?.id as string);
             await this._node?.stopSync(this.title as MutableReference<string>, this._peerGroup?.id as string);
             this._node = undefined;
 
@@ -266,7 +264,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
     }*/
 
     getPages() {
-        return this.pages as MutableSet<Page>;
+        return this.pages as CausalSet<Page>;
     }
 
     hasPage(pageName: string) {

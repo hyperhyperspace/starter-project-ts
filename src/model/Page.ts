@@ -3,6 +3,7 @@ import {
   HashedObject,
   Hashing,
   CausalArray,
+  Identity,
 } from "@hyper-hyper-space/core";
 import { BlockType } from "..";
 import { Block } from "./Block";
@@ -28,6 +29,13 @@ class Page extends HashedObject {
       this.addDerivedField('blocks', new CausalArray<Block>({duplicates: false, writers: wiki.owners?.values(), mutableWriters: wiki.editors}));
       this.addDerivedField('titleBlock', new Block());
     }
+  }
+
+  setAuthor(author: Identity) {
+    super.setAuthor(author);
+    this.setId(
+      Hashing.forString(this.wiki?.hash() + "_" + this.name)
+    );
   }
 
   async addBlock(idx?: number, type?: BlockType) {
