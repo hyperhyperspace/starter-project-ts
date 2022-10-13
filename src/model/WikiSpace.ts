@@ -29,11 +29,13 @@ import { Page } from "./Page";
 class WikiSpace extends HashedObject implements SpaceEntryPoint {
     static className = "hhs-wiki/v0/WikiSpace";
 
+    static OpenlyEditableFlag = 'openly-editable';
+
     static logger = new Logger(WikiSpace.name, LogLevel.DEBUG);
 
     owners?: HashedSet<Identity>;
     editors?: CausalSet<Identity>;
-    openlyEditable?: CausalSet<boolean>;
+    editFlags?: CausalSet<string>;
 
     title?: MutableReference<string>;
     pages?: CausalSet<Page>;
@@ -91,7 +93,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
             this.setRandomId();
             this.addDerivedField('editors', new CausalSet<Identity>({writers: this.owners.values()}));
-            this.addDerivedField('openlyEditable', new CausalSet<Boolean>({writers: this.owners.values(), acceptedTypes: ['boolean']}));
+            this.addDerivedField('editFlags', new CausalSet<string>({writers: this.owners.values(), acceptedElements: [WikiSpace.OpenlyEditableFlag]}));
             this.addDerivedField('title', new MutableReference<string>({writers: this.owners.values()}));
             this.addDerivedField('pages', new CausalSet<Page>({writers: this.owners.values(), mutableWriters: this.editors}));
             this.addDerivedField('offendingPages', new CausalSet<Page>({writers: this.owners.values()}));

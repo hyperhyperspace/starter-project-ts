@@ -5,7 +5,9 @@ import {
   CausalArray,
   Identity,
 } from "@hyper-hyper-space/core";
+
 import { BlockType } from "..";
+import { PageBlockArray } from "./PageBlockArray";
 import { Block } from "./Block";
 import { WikiSpace } from "./WikiSpace";
 
@@ -14,7 +16,7 @@ class Page extends HashedObject {
 
   wiki?: WikiSpace;
   name?: string;
-  blocks?: CausalArray<Block>;
+  blocks?: PageBlockArray;
   titleBlock?: Block;
 
   constructor(name?: string, wiki?: WikiSpace) {
