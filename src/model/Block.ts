@@ -1,4 +1,4 @@
-import { ClassRegistry, HashedObject, MutableReference } from '@hyper-hyper-space/core';
+import { ClassRegistry, HashedObject, Identity, MutableReference } from '@hyper-hyper-space/core';
 
 
 enum BlockType {
@@ -14,11 +14,13 @@ class Block extends HashedObject {
     type?: BlockType;
     contents?: MutableReference<string>;
 
-    constructor(type: BlockType = BlockType.Text) {
+    constructor(type: BlockType = BlockType.Text, author?: Identity) {
         super();
 
+        this.setAuthor(author!);
         this.setRandomId();
-        this.addDerivedField('contents', new MutableReference<string>())
+        const contents = new MutableReference<string>({writer: this.getAuthor()})
+        this.addDerivedField('contents', contents)
         this.type = type;
     }
 
@@ -32,6 +34,8 @@ class Block extends HashedObject {
 
     async validate(_references: Map<string, HashedObject>): Promise<boolean> {
         // todo: editing authorization
+
+        // return this.contents?.getAuthor();
         return true;
     }
 

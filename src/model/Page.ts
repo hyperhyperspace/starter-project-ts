@@ -38,9 +38,9 @@ class Page extends HashedObject {
     );
   }
 
-  async addBlock(idx?: number, type?: BlockType) {
+  async addBlock(idx?: number, type?: BlockType, author?: Identity) {
 
-    const block = new Block(type);
+    const block = new Block(type, author);
     
     if (this.hasResources()) {
       block.setResources(this.getResources()!);
