@@ -28,7 +28,7 @@ class Page extends HashedObject {
       this.setId(
         Hashing.forString(this.wiki.hash() + "_" + this.name)
       );
-      this.addDerivedField('blocks', new CausalArray<Block>({duplicates: false, writers: wiki.owners?.values(), mutableWriters: wiki.editors}));
+      this.addDerivedField('blocks', new PageBlockArray(wiki.editors, wiki.editFlags));
       this.addDerivedField('titleBlock', new Block());
     }
   }
