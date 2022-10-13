@@ -2,7 +2,6 @@ import {
   ClassRegistry,
   HashedObject,
   Hashing,
-  CausalArray,
   Identity,
 } from "@hyper-hyper-space/core";
 
