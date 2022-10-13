@@ -5,27 +5,19 @@ import { Block } from './Block';
 
 class PageBlockArray extends CausalArray<Block> {
 
-    editors?: CausalSet<Identity>;
     editFlags?: CausalSet<string>;
 
-    constructor(editors?: CausalSet<Identity>, editFlags?: CausalSet<string>) {
-        super({acceptedTypes: [Block.className], duplicates: false});
+    constructor(owners?: IterableIterator<Identity>, editors?: CausalSet<Identity>, editFlags?: CausalSet<string>) {
+        super({acceptedTypes: [Block.className], writers: owners, mutableWriters: editors, duplicates: false});
 
-        if (editors !== undefined && editFlags !== undefined) {
-            this.editors = editors;
+        if (editFlags !== undefined) {
             this.editFlags = editFlags;
         }
     }
 
     protected createWriteAuthorizer(author?: Identity): Authorizer {
 
-        const authOptions = [(this.editFlags as CausalSet<string>).createMembershipAuthorizer(WikiSpace.OpenlyEditableFlag)];
-
-        if (author !== undefined) {
-            authOptions.push((this.editors as CausalSet<Identity>).createMembershipAuthorizer(author));
-        }
-
-        return Authorization.oneOf(authOptions);
+        return Authorization.oneOf([(this.editFlags as CausalSet<string>).createMembershipAuthorizer(WikiSpace.OpenlyEditableFlag), super.createWriteAuthorizer(author)]);
     }
 
 }
