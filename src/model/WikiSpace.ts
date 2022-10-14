@@ -227,6 +227,8 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
             await this._node.broadcast(this);
             await this._node.sync(this.pages as CausalSet<Page>, SyncMode.single, peerGroup);
+            await this._node.sync(this.editFlags as CausalSet<string>, SyncMode.single, peerGroup);
+            await this._node.sync(this.editors as CausalSet<Identity>, SyncMode.single, peerGroup);
             await this._node.sync(this.title as MutableReference<string>, SyncMode.single, peerGroup);
 
             WikiSpace.logger.debug('Wiki ' + this.getLastHash() + ': done starting sync');
@@ -252,6 +254,8 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
             await this._node?.stopBroadcast(this);
             await this._node?.stopSync(this.pages as CausalSet<Page>, this._peerGroup?.id as string);
+            await this._node?.stopSync(this.editFlags as CausalSet<string>, this._peerGroup?.id as string);
+            await this._node?.stopSync(this.editors as CausalSet<Identity>, this._peerGroup?.id as string);
             await this._node?.stopSync(this.title as MutableReference<string>, this._peerGroup?.id as string);
             this._node = undefined;
 
@@ -310,14 +314,14 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         return page;
     }
 
-    async createWelcomePage(title: string) {
+    async createWelcomePage(title: string, author: Identity) {
         const welcomePage = this.createPage('Welcome');
         const welcomeBlock = new Block();
         welcomeBlock.setId('welcome-block-for-' + this.hash());
         await welcomeBlock.contents?.setValue('This is the first page of "' + title + '".');
-        await this.pages?.add(welcomePage);
+        await this.pages?.add(welcomePage, author);
         await this.pages?.save();
-        await welcomePage.blocks?.push(welcomeBlock);
+        await welcomePage.blocks?.push(welcomeBlock, author);
         await welcomePage.save();
         await welcomeBlock.contents?.save();
     }
