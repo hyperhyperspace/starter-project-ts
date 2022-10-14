@@ -48,9 +48,9 @@ class Page extends HashedObject {
     }
 
     if (idx === undefined) {
-      await this.blocks?.push(block);
+      await this.blocks?.push(block, author);
     } else {
-      await this.blocks?.insertAt(block, idx);
+      await this.blocks?.insertAt(block, idx, author);
     }
     
     await this.blocks?.saveQueuedOps();

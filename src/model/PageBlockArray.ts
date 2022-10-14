@@ -17,7 +17,9 @@ class PageBlockArray extends CausalArray<Block> {
 
     protected createWriteAuthorizer(author?: Identity): Authorizer {
 
-        return Authorization.oneOf([(this.editFlags as CausalSet<string>).createMembershipAuthorizer(WikiSpace.OpenlyEditableFlag), super.createWriteAuthorizer(author)]);
+        const openlyEditableAuth = (this.editFlags as CausalSet<string>).createMembershipAuthorizer(WikiSpace.OpenlyEditableFlag);
+
+        return Authorization.oneOf([super.createWriteAuthorizer(author), openlyEditableAuth]);
     }
 
 }
