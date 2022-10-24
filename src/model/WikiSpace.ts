@@ -431,6 +431,10 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
             }
         }
     }
+
+    getName() {
+        return this.title;
+    }
 }
 
 ClassRegistry.register(WikiSpace.className, WikiSpace);
