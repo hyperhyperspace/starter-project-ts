@@ -292,7 +292,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         const allowed = new Set<Page>();
 
         for (const page of this.pages?.values()!) {
-            if (!this.offendingPages?.has(page)) {
+            if (!this.offendingPages?.hasByHash(page.getLastHash())) {
                 allowed.add(page);
             }
         }
@@ -301,7 +301,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
     }
 
     isAllowedIdentity(id: Identity) {
-        return !this.offendingAuthors?.has(id);
+        return !this.offendingAuthors?.hasByHash(id.getLastHash());
     }
 
     createPage(pageName: string) {
