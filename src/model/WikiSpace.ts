@@ -326,16 +326,16 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         await welcomeBlock.contents?.save();
     }
 
-    async addPage(page: Page) {
+    async addPage(page: Page, author: Identity) {
         if (page.wiki !== this) {
             throw new Error('Trying to add a page blonging to a different wiki');
         }
 
-        await this.pages?.add(page);
+        await this.pages?.add(page, author);
         await this.pages?.save();
     }
 
-    async navigateTo(pageName: string) {
+    async navigateTo(pageName: string, author: Identity) {
 
         // create the page we want to navigate to, so we can figure out its hash
         let page = new Page(pageName, this);
@@ -353,7 +353,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
                 page.setResources(this.getResources()!);
             }
 
-            await this.pages?.add(page);
+            await this.pages?.add(page, author);
             await page.save();
 
             // it's important that we return the same page instance
