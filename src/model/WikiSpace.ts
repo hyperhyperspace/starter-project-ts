@@ -131,7 +131,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         // after loading it from the store, this method will be called to perform any necessary
         // initialization.
         //this.pages?.cascadeMutableContentEvents();
-        this.addMutationObserver(this._pagesObserver);
+        this.addObserver(this._pagesObserver);
         /*if (this._index === undefined) {
             this._index = new Page("/", this);
         }*/
@@ -215,7 +215,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
             for (let page of (this.pages?.values() || [])) {
                 WikiSpace.logger.debug('Wiki ' + this.getLastHash() + ': starting sync of page ' + page?.name);
                 await this._node?.sync(page.blocks as CausalArray<Block>, SyncMode.single, peerGroup);
-                page.addMutationObserver(this._pagesObserver);
+                page.addObserver(this._pagesObserver);
                 await page.loadAndWatchForChanges();
                 for (let block of page.blocks?.contents()!) {
                     console.log('Page ' + page.name + ': starting sync block ' + block?.getLastHash())
@@ -389,7 +389,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
                     if (this._node) console.log('starting to sync page (obs) ' + page?.getLastHash());
                     await this._node.sync(page.blocks as CausalArray<Block>, SyncMode.single, this._peerGroup);
-                    page.addMutationObserver(this._pagesObserver);
+                    page.addObserver(this._pagesObserver);
                     await page.loadAndWatchForChanges();
                     
                     for (let block of page.blocks?.contents()!) {
@@ -404,7 +404,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
                     if (this._node) console.log('stopping page syncing (obs) ' + page?.getLastHash())
                     this._node.stopSync(page.blocks as CausalArray<Block>, this._peerGroup?.id);
                     page.dontWatchForChanges();
-                    page.removeMutationObserver(this._pagesObserver);
+                    page.removeObserver(this._pagesObserver);
                     for (let block of page.blocks?.contents()!) {
                         if (this._node) console.log('stopping sync block (obs-init) ' + block?.getLastHash())
                         await this._node?.stopSync(block.contents as MutableReference<string>, this._peerGroup?.id);
