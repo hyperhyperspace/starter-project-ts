@@ -63,12 +63,12 @@ class Page extends HashedObject {
     return block;
   }
   
-  async moveBlock(from: number, to: number) {
+  async moveBlock(from: number, to: number, author?: Identity) {
     console.log('moving block from', from, 'to', to)
     const block = this.blocks?.valueAt(from);
     if (block) {
         //await this.blocks?.deleteAt(from); // shouldn't need this - I think we don't!
-        await this.blocks?.insertAt(block, to);
+        await this.blocks?.insertAt(block, to, author);
         await this.blocks?.save();
         return to
     } else {
@@ -76,8 +76,8 @@ class Page extends HashedObject {
     }
   }
 
-  async removeBlock(block: Block) {
-    this.blocks?.deleteElement(block);
+  async removeBlock(block: Block, author?: Identity) {
+    this.blocks?.deleteElement(block, author);
     this.blocks?.save();
   }
 
