@@ -1,17 +1,17 @@
-import { Authorization, Authorizer, CausalArray, CausalSet, ClassRegistry, Identity } from '@hyper-hyper-space/core';
+import { Authorizer, CausalArray, CausalSet, ClassRegistry, HashedSet, Identity } from '@hyper-hyper-space/core';
 
-import { WikiSpace } from './WikiSpace';
+import { PermFlag, WikiSpace } from './WikiSpace';
 import { Block } from './Block';
 
 class PageBlockArray extends CausalArray<Block> {
     static className = "hhs-wiki/v0/PageBlockArray";
-    editFlags?: CausalSet<string>;
+    writeConfig?: CausalSet<PermFlag>;
 
-    constructor(owners?: IterableIterator<Identity>, editors?: CausalSet<Identity>, editFlags?: CausalSet<string>) {
+    constructor(owners?: IterableIterator<Identity>, editors?: CausalSet<Identity>, writeConfig?: CausalSet<PermFlag>) {
         super({acceptedTypes: [Block.className], writers: owners, mutableWriters: editors, duplicates: false});
 
-        if (editFlags !== undefined) {
-            this.editFlags = editFlags;
+        if (writeConfig !== undefined) {
+            this.writeConfig = writeConfig;
         }
     }
 
@@ -21,9 +21,11 @@ class PageBlockArray extends CausalArray<Block> {
 
     protected createWriteAuthorizer(author?: Identity): Authorizer {
 
-        const openlyEditableAuth = (this.editFlags as CausalSet<string>).createMembershipAuthorizer(WikiSpace.OpenlyEditableFlag);
+        const owners  = this.writers as HashedSet<Identity>;
+        const members = this.mutableWriters as CausalSet<Identity>;
+        const writeConfig = this.writeConfig as CausalSet<PermFlag>;
 
-        return Authorization.oneOf([super.createWriteAuthorizer(author), openlyEditableAuth]);
+        return WikiSpace.createPermAuthorizer(owners, members, writeConfig, author);
     }
 
 }
