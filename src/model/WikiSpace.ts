@@ -27,14 +27,16 @@ import { Block } from "./Block";
 import { Page } from "./Page";
 import { PageSet } from "./PageSet";
 
-type PermFlag = 'members'|'everyone';
+export const PermFlagMembers = 'members'
+export const PermFlagEveryone = 'everyone'
+type PermFlag = typeof PermFlagEveryone | typeof PermFlagMembers;
 
 class WikiSpace extends HashedObject implements SpaceEntryPoint {
     static className = "hhs-wiki/v0/WikiSpace";
 
     static logger = new Logger(WikiSpace.name, LogLevel.DEBUG);
 
-    static permFlags:PermFlag[] = ['members', 'everyone'];
+    static permFlags:PermFlag[] = [PermFlagMembers, PermFlagEveryone];
 
     owners?: HashedSet<Identity>;
     members?: CausalSet<Identity>;
