@@ -41,7 +41,7 @@ class Page extends HashedObject {
 
   async addBlock(idx?: number, type?: BlockType, author?: Identity) {
 
-    const block = new Block(type, author);
+    const block = new Block(type, this.wiki);
     
     if (this.hasResources()) {
       block.setResources(this.getResources()!);

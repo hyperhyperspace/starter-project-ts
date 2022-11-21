@@ -1,4 +1,5 @@
-import { ClassRegistry, HashedObject, Identity, MutableReference } from '@hyper-hyper-space/core';
+import { Authorizer, CausalReference, CausalSet, ClassRegistry, HashedObject, HashedSet, Identity } from '@hyper-hyper-space/core';
+import { PermFlag, WikiSpace } from './WikiSpace';
 
 
 enum BlockType {
@@ -7,21 +8,21 @@ enum BlockType {
     Image = 'Image'
 }
 
-class Block extends HashedObject {
+class Block extends CausalReference<string> {
 
     static className = 'hhs-wiki/v0/Block';
 
     type?: BlockType;
-    contents?: MutableReference<string>;
+    writeConfig?: CausalSet<PermFlag>;
 
-    constructor(type: BlockType = BlockType.Text, author?: Identity) {
-        super();
+    constructor(type: BlockType = BlockType.Text, wiki?: WikiSpace) {
+        super(wiki? {writers: wiki.owners?.values(), mutableWriters: wiki.members, acceptedTypes: ['string']} : {});
 
-        this.setAuthor(author!);
-        this.setRandomId();
-        const contents = new MutableReference<string>({writer: this.getAuthor()})
-        this.addDerivedField('contents', contents)
-        this.type = type;
+        if (wiki !== undefined) {
+            this.setRandomId();
+            this.type = type;
+            this.writeConfig = wiki.writeConfig;
+        }
     }
 
     getClassName(): string {
@@ -37,6 +38,14 @@ class Block extends HashedObject {
 
         // return this.contents?.getAuthor();
         return true;
+    }
+
+    protected createUpdateAuthorizer(author?: Identity): Authorizer {
+        const owners  = this.writers as HashedSet<Identity>;
+        const members = this.mutableWriters as CausalSet<Identity>;
+        const writeConfig = this.writeConfig as CausalSet<PermFlag>;
+
+        return WikiSpace.createPermAuthorizer(owners, members, writeConfig, author);
     }
 
 }

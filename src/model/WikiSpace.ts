@@ -23,7 +23,7 @@ import {
     SpaceEntryPoint,
     SyncMode,
 } from "@hyper-hyper-space/core";
-import { Block } from "./Block";
+import { Block, BlockType } from "./Block";
 import { Page } from "./Page";
 import { PageSet } from "./PageSet";
 
@@ -223,7 +223,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
                 await page.loadAndWatchForChanges();
                 for (let block of page.blocks?.contents()!) {
                     console.log('Page ' + page.name + ': starting sync block ' + block?.getLastHash())
-                    await this._node?.sync(block.contents as MutableReference<string>, SyncMode.single, peerGroup);
+                    await this._node?.sync(block as Block, SyncMode.single, peerGroup);
                     block.cascadeMutableContentEvents();
                     await block.loadAndWatchForChanges();
                 }
@@ -252,7 +252,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
                 await page.dontWatchForChanges();
                 for (let block of page.blocks?.contents()!) {
                     console.log('stopping sync block ' + block?.getLastHash())
-                    await this._node?.stopSync(block.contents as MutableReference<string>, this._peerGroup?.id as string);
+                    await this._node?.stopSync(block as Block, this._peerGroup?.id as string);
                     await block.dontWatchForChanges();
                 }
             }
@@ -324,14 +324,14 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
     async createWelcomePage(title: string, author: Identity) {
         const welcomePage = this.createPage('Welcome');
-        const welcomeBlock = new Block();
+        const welcomeBlock = new Block(BlockType.Text, this);
         welcomeBlock.setId('welcome-block-for-' + this.hash());
-        await welcomeBlock.contents?.setValue('This is the first page of "' + title + '".');
+        await welcomeBlock.setValue('This is the first page of "' + title + '".', author);
         await this.pages?.add(welcomePage, author);
         await this.pages?.save();
         await welcomePage.blocks?.push(welcomeBlock, author);
         await welcomePage.save();
-        await welcomeBlock.contents?.save();
+        await welcomeBlock.save();
     }
 
     async addPage(page: Page, author: Identity) {
@@ -402,7 +402,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
                     
                     for (let block of page.blocks?.contents()!) {
                         if (this._node) console.log('starting sync block (obs-init) ' + block?.getLastHash());
-                        await this._node?.sync(block.contents as MutableReference<string>, SyncMode.single, this._peerGroup);
+                        await this._node?.sync(block as Block, SyncMode.single, this._peerGroup);
                         await block.loadAndWatchForChanges();
                     }
                 }
@@ -415,7 +415,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
                     page.removeObserver(this._pagesObserver);
                     for (let block of page.blocks?.contents()!) {
                         if (this._node) console.log('stopping sync block (obs-init) ' + block?.getLastHash())
-                        await this._node?.stopSync(block.contents as MutableReference<string>, this._peerGroup?.id);
+                        await this._node?.stopSync(block as Block, this._peerGroup?.id);
                         block.dontWatchForChanges();
                     }
 
@@ -427,13 +427,13 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
             if (ev.action === MutableContentEvents.AddObject) {
                 if (this._node) {
                     if (this._node) console.log('starting to sync block (obs) ' + block?.getLastHash())
-                    await this._node?.sync(block.contents as MutableReference<string>, SyncMode.single, this._peerGroup);
+                    await this._node?.sync(block as Block, SyncMode.single, this._peerGroup);
                     await block.loadAndWatchForChanges();
                 }
             } else if (ev.action === MutableContentEvents.RemoveObject) {
                 if (this._node) {
                     if (this._node) console.log('stopping block syncing (obs) ' + block?.getLastHash())
-                    await this._node.stopSync(block.contents as MutableReference<string>, this._peerGroup?.id);
+                    await this._node.stopSync(block as Block, this._peerGroup?.id);
                     block.dontWatchForChanges();
                 }
             }
