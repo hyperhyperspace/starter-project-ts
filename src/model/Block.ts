@@ -48,6 +48,9 @@ class Block extends CausalReference<string> {
         return WikiSpace.createPermAuthorizer(owners, members, writeConfig, author);
     }
 
+    canUpdate(author?: Identity) {
+        return this.createUpdateAuthorizer(author).attempt();
+    }
 }
 
 ClassRegistry.register(Block.className, Block);

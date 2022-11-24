@@ -81,6 +81,10 @@ class Page extends HashedObject {
     this.blocks?.save();
   }
 
+  canUpdate(author?: Identity) {
+      return this.wiki?.createUpdateAuthorizer(author).attempt();
+  }
+
   getClassName(): string {
     return Page.className;
   }

@@ -454,17 +454,25 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
                 if (owners.has(author)) {
                     identityAuth = Authorization.always;
                 } else {
-                    const memberAuth = permConfig.createMembershipAuthorizer('members');
+                    const memberAuth = permConfig.createMembershipAuthorizer(PermFlagMembers);
                     identityAuth = Authorization.all([memberAuth, members.createMembershipAuthorizer(author)]);
                 } 
             } else {
                 identityAuth = Authorization.never;
             }
     
-            const anonymousAuth = permConfig.createMembershipAuthorizer('everyone');
+            const anonymousAuth = permConfig.createMembershipAuthorizer(PermFlagEveryone);
     
             return Authorization.oneOf([identityAuth, anonymousAuth]);
     
+    }
+    
+    createUpdateAuthorizer(author?: Identity): Authorizer {
+        const owners  = this.owners as HashedSet<Identity>;
+        const members = this.members as CausalSet<Identity>;
+        const writeConfig = this.writeConfig as CausalSet<PermFlag>;
+
+        return WikiSpace.createPermAuthorizer(owners, members, writeConfig, author);
     }
 }
 
