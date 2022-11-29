@@ -56,7 +56,7 @@ class Page extends HashedObject {
     await this.blocks?.saveQueuedOps();
     
     if (!this.wiki?.hasPage(this.name as string)) {
-      await this.wiki?.pages?.add(this, author);
+      await this.wiki?.pages?.insertAt(this, 0, author);
       await this.wiki?.pages?.save();  
     }
 

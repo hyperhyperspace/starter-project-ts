@@ -25,7 +25,7 @@ import {
 } from "@hyper-hyper-space/core";
 import { Block, BlockType } from "./Block";
 import { Page } from "./Page";
-import { PageSet } from "./PageSet";
+import { PageArray } from "./PageArray";
 
 export const PermFlagMembers = 'members'
 export const PermFlagEveryone = 'everyone'
@@ -46,7 +46,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
     writeConfig?: CausalSet<PermFlag>;
 
     title?: MutableReference<string>;
-    pages?: PageSet;
+    pages?: PageArray;
 
     _pagesObserver: MutationObserver;
     _node?: MeshNode;
@@ -101,7 +101,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
             this.addDerivedField('readConfig', new CausalSet<PermFlag>({writers: this.owners.values(), acceptedElements: WikiSpace.permFlags}));
             this.addDerivedField('writeConfig', new CausalSet<PermFlag>({writers: this.owners.values(), acceptedElements: WikiSpace.permFlags}));
             this.addDerivedField('title', new MutableReference<string>({writers: this.owners.values()}));
-            this.addDerivedField('pages', new PageSet(this.owners.values(), this.members, this.writeConfig));
+            this.addDerivedField('pages', new PageArray(this.owners.values(), this.members, this.writeConfig));
             
             if (title !== undefined) {
                 this.title?.setValue(title);
@@ -230,7 +230,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
             }
 
             await this._node.broadcast(this);
-            await this._node.sync(this.pages as CausalSet<Page>, SyncMode.single, peerGroup);
+            await this._node.sync(this.pages as CausalArray<Page>, SyncMode.single, peerGroup);
             await this._node.sync(this.readConfig as CausalSet<PermFlag>, SyncMode.single, peerGroup);
             await this._node.sync(this.writeConfig as CausalSet<PermFlag>, SyncMode.single, peerGroup);
             await this._node.sync(this.members as CausalSet<Identity>, SyncMode.single, peerGroup);
@@ -258,7 +258,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
             }
 
             await this._node?.stopBroadcast(this);
-            await this._node?.stopSync(this.pages as CausalSet<Page>, this._peerGroup?.id as string);
+            await this._node?.stopSync(this.pages as CausalArray<Page>, this._peerGroup?.id as string);
             await this._node?.stopSync(this.readConfig as CausalSet<PermFlag>, this._peerGroup?.id as string);
             await this._node?.stopSync(this.writeConfig as CausalSet<PermFlag>, this._peerGroup?.id as string);
             await this._node?.stopSync(this.members as CausalSet<Identity>, this._peerGroup?.id as string);
@@ -276,7 +276,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
     }*/
 
     getPages() {
-        return this.pages as CausalSet<Page>;
+        return this.pages as CausalArray<Page>;
     }
 
     hasPage(pageName: string) {
@@ -327,7 +327,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         const welcomeBlock = new Block(BlockType.Text, this);
         welcomeBlock.setId('welcome-block-for-' + this.hash());
         await welcomeBlock.setValue('This is the first page of "' + title + '".', author);
-        await this.pages?.add(welcomePage, author);
+        await this.pages?.insertAt(welcomePage, 0, author);
         await this.pages?.save();
         await welcomePage.blocks?.push(welcomeBlock, author);
         await welcomePage.save();
@@ -339,8 +339,21 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
             throw new Error('Trying to add a page blonging to a different wiki');
         }
 
-        await this.pages?.add(page, author);
+        await this.pages?.insertAt(page, 0, author);
         await this.pages?.save();
+    }
+
+    async movePage(from: number, to: number, author?: Identity) {
+        console.log('moving page from', from, 'to', to)
+        const page = this.pages?.valueAt(from);
+        if (page) {
+            //await this.blocks?.deleteAt(from); // shouldn't need this - I think we don't!
+            await this.pages?.insertAt(page, to, author);
+            await this.pages?.save();
+            return to
+        } else {
+            return from
+        }
     }
 
     async navigateTo(pageName: string, author: Identity) {
@@ -361,7 +374,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
                 page.setResources(this.getResources()!);
             }
 
-            await this.pages?.add(page, author);
+            await this.pages?.insertAt(page, 0, author);
             await page.save();
 
             // it's important that we return the same page instance

@@ -1,14 +1,14 @@
-import { Authorizer, CausalSet, ClassRegistry, HashedSet, Identity } from '@hyper-hyper-space/core';
+import { Authorizer, CausalArray, CausalSet, ClassRegistry, HashedSet, Identity } from '@hyper-hyper-space/core';
 
 import { WikiSpace, PermFlag } from './WikiSpace';
 import { Page } from './Page';
 
-class PageSet extends CausalSet<Page> {
-    static className = "hhs-wiki/v0/PageSet";
+class PageArray extends CausalArray<Page> {
+    static className = "hhs-wiki/v0/PageArray";
     writeConfig?: CausalSet<PermFlag>;
 
     constructor(owners?: IterableIterator<Identity>, members?: CausalSet<Identity>, writeConfig?: CausalSet<PermFlag>) {
-        super({acceptedTypes: [Page.className], writers: owners, mutableWriters: members});
+        super({acceptedTypes: [Page.className], writers: owners, mutableWriters: members, duplicates: false});
 
         if (writeConfig !== undefined) {
             this.writeConfig = writeConfig;
@@ -16,7 +16,7 @@ class PageSet extends CausalSet<Page> {
     }
 
     getClassName() {
-        return PageSet.className;
+        return PageArray.className;
     }
 
     protected createWriteAuthorizer(author?: Identity): Authorizer {
@@ -33,6 +33,6 @@ class PageSet extends CausalSet<Page> {
 
 }
 
-ClassRegistry.register(PageSet.className, PageSet);
+ClassRegistry.register(PageArray.className, PageArray);
 
-export { PageSet };
+export { PageArray as PageArray };
