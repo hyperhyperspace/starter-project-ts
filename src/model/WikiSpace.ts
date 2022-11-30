@@ -339,7 +339,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
             throw new Error('Trying to add a page blonging to a different wiki');
         }
 
-        await this.pages?.insertAt(page, 0, author);
+        await this.pages?.insertAt(page, this.pages?.size() || 0, author);
         await this.pages?.save();
     }
 
