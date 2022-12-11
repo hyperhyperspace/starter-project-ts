@@ -33,6 +33,7 @@ type PermFlag = typeof PermFlagEveryone | typeof PermFlagMembers;
 
 class WikiSpace extends HashedObject implements SpaceEntryPoint {
     static className = "hhs-wiki/v0/WikiSpace";
+    static version   = "0.0.5";
 
     static logger = new Logger(WikiSpace.name, LogLevel.DEBUG);
 
@@ -47,6 +48,8 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
     title?: MutableReference<string>;
     pages?: PageArray;
+
+    version?: string;
 
     _pagesObserver: MutationObserver;
     _node?: MeshNode;
@@ -115,6 +118,8 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
             this.pages?.add(this._index);*/
 
+            this.version = WikiSpace.version;
+
             this.init();
         }
 
@@ -146,7 +151,12 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         // When your object is received from the network, this method will be
         // called to verify its contents before accepting it into the local store.
 
-        return true;
+        const another = new WikiSpace(this.owners?.values(), 'title dont matter');
+
+        another.setId(this.getId() as string);
+        another.version = this.version;
+
+        return this.equals(another);
     }
 
     async startSync(): Promise<void> {
@@ -455,6 +465,10 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
     getName() {
         return this.title;
+    }
+
+    getVersion(): string {
+        return this.version as string;
     }
 
     static createPermAuthorizer(owners: HashedSet<Identity>, members: CausalSet<Identity>, permConfig: CausalSet<PermFlag>, author?: Identity): Authorizer {
