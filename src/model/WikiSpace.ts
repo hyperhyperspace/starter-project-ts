@@ -156,6 +156,10 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         another.setId(this.getId() as string);
         another.version = this.version;
 
+        if (this.hasAuthor()) {
+            another.setAuthor(this.getAuthor() as Identity);
+        }
+
         return this.equals(another);
     }
 
