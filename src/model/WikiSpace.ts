@@ -1,8 +1,5 @@
 import {
-    Authorization,
-    Authorizer,
     CausalArray,
-    CausalSet,
     ClassRegistry,
     Hash,
     HashedObject,
@@ -26,25 +23,15 @@ import {
 import { Block, BlockType } from "./Block";
 import { Page } from "./Page";
 import { PageArray } from "./PageArray";
-
-export const PermFlagMembers = 'members'
-export const PermFlagEveryone = 'everyone'
-type PermFlag = typeof PermFlagEveryone | typeof PermFlagMembers;
+import { PermissionLogic } from "./PermissionLogic";
 
 class WikiSpace extends HashedObject implements SpaceEntryPoint {
     static className = "hhs-wiki/v0/WikiSpace";
-    static version   = "0.0.5";
+    static version   = "0.0.6";
 
     static logger = new Logger(WikiSpace.name, LogLevel.DEBUG);
-
-    static permFlags:PermFlag[] = [PermFlagMembers, PermFlagEveryone];
-
     owners?: HashedSet<Identity>;
-    members?: CausalSet<Identity>;
-    //editFlags?: CausalSet<string>;
-
-    readConfig?: CausalSet<PermFlag>;
-    writeConfig?: CausalSet<PermFlag>;
+    permissionLogic?: PermissionLogic;
 
     title?: MutableReference<string>;
     pages?: PageArray;
@@ -69,7 +56,6 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
     constructor(owners?: IterableIterator<Identity>, title?: string) {
         super();
 
-        // this.pages = new MutableSet<Page>();
 
         this._processEventLock = new Lock();
         this._pendingEvents    = [];
@@ -78,45 +64,19 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
             this._pendingEvents.push(ev);
             this.processPendingEvents();
-
-            /*
-            console.log('observer!')
-            console.log(ev.path);
-            
-            console.log('emitter: ' + ev.emitter.getClassName())
-            console.log('data:    ' + ev.data.getClassName())
-            console.log('action:  ' + ev.action);
-            */
-            
-            
-
-            /*console.log('leaving observer!')*/
         };
 
         if (owners !== undefined) {
-
-            // this.setAuthor(owner);
-
             this.owners = new HashedSet<Identity>(owners);
 
             this.setRandomId();
-            this.addDerivedField('members', new CausalSet<Identity>({writers: this.owners.values()}));
-            this.addDerivedField('readConfig', new CausalSet<PermFlag>({writers: this.owners.values(), acceptedElements: WikiSpace.permFlags}));
-            this.addDerivedField('writeConfig', new CausalSet<PermFlag>({writers: this.owners.values(), acceptedElements: WikiSpace.permFlags}));
             this.addDerivedField('title', new MutableReference<string>({writers: this.owners.values()}));
-            this.addDerivedField('pages', new PageArray(this.owners.values(), this.members, this.writeConfig));
+            this.addDerivedField('permissionLogic', new PermissionLogic(owners));
+            this.addDerivedField('pages', new PageArray(this.permissionLogic));
             
             if (title !== undefined) {
                 this.title?.setValue(title);
             }
-
-            /*this._index = new Page("/", this);
-
-            if (this.hasResources()) {
-                this._index.setResources(this.getResources() as Resources);
-            }
-
-            this.pages?.add(this._index);*/
 
             this.version = WikiSpace.version;
 
@@ -245,9 +205,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
             await this._node.broadcast(this);
             await this._node.sync(this.pages as CausalArray<Page>, SyncMode.single, peerGroup);
-            await this._node.sync(this.readConfig as CausalSet<PermFlag>, SyncMode.single, peerGroup);
-            await this._node.sync(this.writeConfig as CausalSet<PermFlag>, SyncMode.single, peerGroup);
-            await this._node.sync(this.members as CausalSet<Identity>, SyncMode.single, peerGroup);
+            await this._node.sync(this.permissionLogic as PermissionLogic, SyncMode.single, peerGroup);
             await this._node.sync(this.title as MutableReference<string>, SyncMode.single, peerGroup);
 
             WikiSpace.logger.debug('Wiki ' + this.getLastHash() + ': done starting sync');
@@ -273,9 +231,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
             await this._node?.stopBroadcast(this);
             await this._node?.stopSync(this.pages as CausalArray<Page>, this._peerGroup?.id as string);
-            await this._node?.stopSync(this.readConfig as CausalSet<PermFlag>, this._peerGroup?.id as string);
-            await this._node?.stopSync(this.writeConfig as CausalSet<PermFlag>, this._peerGroup?.id as string);
-            await this._node?.stopSync(this.members as CausalSet<Identity>, this._peerGroup?.id as string);
+            await this._node?.stopSync(this.permissionLogic as PermissionLogic, this._peerGroup?.id as string);
             await this._node?.stopSync(this.title as MutableReference<string>, this._peerGroup?.id as string);
             this._node = undefined;
 
@@ -474,40 +430,8 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
     getVersion(): string {
         return this.version as string;
     }
-
-    static createPermAuthorizer(owners: HashedSet<Identity>, members: CausalSet<Identity>, permConfig: CausalSet<PermFlag>, author?: Identity): Authorizer {
-    
-            let identityAuth: Authorizer;
-
-            if (owners.size() === 0) { // there are no owners, so it's an open wiki
-                identityAuth = Authorization.always;
-            } else if (author !== undefined) {
-                if (owners.has(author)) {
-                    identityAuth = Authorization.always;
-                } else {
-                    const memberAuth = permConfig.createMembershipAuthorizer(PermFlagMembers);
-                    identityAuth = Authorization.all([memberAuth, members.createMembershipAuthorizer(author)]);
-                } 
-            } else {
-                identityAuth = Authorization.never;
-            }
-    
-            const anonymousAuth = permConfig.createMembershipAuthorizer(PermFlagEveryone);
-    
-            return Authorization.oneOf([identityAuth, anonymousAuth]);
-    
-    }
-    
-    createUpdateAuthorizer(author?: Identity): Authorizer {
-        const owners  = this.owners as HashedSet<Identity>;
-        const members = this.members as CausalSet<Identity>;
-        const writeConfig = this.writeConfig as CausalSet<PermFlag>;
-
-        return WikiSpace.createPermAuthorizer(owners, members, writeConfig, author);
-    }
 }
 
 ClassRegistry.register(WikiSpace.className, WikiSpace);
 
 export { WikiSpace };
-export type { PermFlag };

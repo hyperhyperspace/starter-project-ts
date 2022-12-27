@@ -3,3 +3,4 @@ export * from './model/Block';
 export * from './model/Page';
 export * from './model/PageArray';
 export * from './model/PageBlockArray';
+export * from './model/PermissionLogic';

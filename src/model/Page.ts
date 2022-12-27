@@ -27,7 +27,7 @@ class Page extends HashedObject {
       this.setId(
         Hashing.forString(this.wiki.hash() + "_" + this.name)
       );
-      this.addDerivedField('blocks', new PageBlockArray(wiki.owners?.values(), wiki.members, wiki.writeConfig));
+      this.addDerivedField('blocks', new PageBlockArray(wiki.permissionLogic));
       this.addDerivedField('titleBlock', new Block());
     }
   }
@@ -82,7 +82,7 @@ class Page extends HashedObject {
   }
 
   canUpdate(author?: Identity) {
-      return this.wiki?.createUpdateAuthorizer(author).attempt();
+      return this.wiki?.permissionLogic?.createUpdateAuthorizer(author).attempt();
   }
 
   getClassName(): string {
@@ -108,7 +108,13 @@ class Page extends HashedObject {
         return false;
     }
 
-    return true;
+    const another = new Page(this.name, this.wiki);
+
+    if (this.hasAuthor()) {
+        another.setAuthor(this.getAuthor() as Identity);
+    }
+
+    return this.equals(another);
   }
 }
 
