@@ -1,5 +1,5 @@
-import { Authorizer, CausalReference, CausalSet, ClassRegistry, HashedObject, HashedSet, Identity } from '@hyper-hyper-space/core';
-import { PermFlag, WikiSpace } from './WikiSpace';
+import { Authorizer, CausalReference, ClassRegistry, HashedObject, Identity } from '@hyper-hyper-space/core';
+import { WikiSpace } from './WikiSpace';
 
 
 enum BlockType {
@@ -13,15 +13,14 @@ class Block extends CausalReference<string> {
     static className = 'hhs-wiki/v0/Block';
 
     type?: BlockType;
-    writeConfig?: CausalSet<PermFlag>;
+    wiki?: WikiSpace;
 
     constructor(type: BlockType = BlockType.Text, wiki?: WikiSpace) {
-        super(wiki? {writers: wiki.owners?.values(), mutableWriters: wiki.members, acceptedTypes: ['string']} : {});
-
+        super(wiki? {writers: wiki.owners?.values(), acceptedTypes: ['string']} : {});
+        this.wiki = wiki;
         if (wiki !== undefined) {
             this.setRandomId();
             this.type = type;
-            this.writeConfig = wiki.writeConfig;
         }
     }
 
@@ -34,18 +33,19 @@ class Block extends CausalReference<string> {
     }
 
     async validate(_references: Map<string, HashedObject>): Promise<boolean> {
-        // todo: editing authorization
+        const another = new Block(this.type, this.wiki);
 
-        // return this.contents?.getAuthor();
-        return true;
+        another.setId(this.getId() as string);
+
+        if (this.hasAuthor()) {
+            another.setAuthor(this.getAuthor() as Identity);
+        }
+
+        return this.equals(another);
     }
 
     protected createUpdateAuthorizer(author?: Identity): Authorizer {
-        const owners  = this.writers as HashedSet<Identity>;
-        const members = this.mutableWriters as CausalSet<Identity>;
-        const writeConfig = this.writeConfig as CausalSet<PermFlag>;
-
-        return WikiSpace.createPermAuthorizer(owners, members, writeConfig, author);
+        return this.wiki?.permissionLogic?.createUpdateAuthorizer(author)!;
     }
 
     canUpdate(author?: Identity) {
