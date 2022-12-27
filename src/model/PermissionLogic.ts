@@ -1,25 +1,20 @@
 import {
     Authorization,
     Authorizer,
-    CausalArray,
     CausalSet,
     ClassRegistry,
     Hash,
     HashedObject,
     HashedSet,
     Identity,
-    LinkupAddress,
     Lock,
     Logger,
     LogLevel,
     MeshNode,
     MultiMap,
     MutableReference,
-    ObjectDiscoveryPeerSource,
     PeerGroupInfo,
-    SyncMode,
 } from "@hyper-hyper-space/core";
-import { Page } from "./Page";
 import { PageArray } from "./PageArray";
 
 export const PermFlagMembers = 'members'
@@ -30,7 +25,6 @@ type PermFlag = typeof PermFlagEveryone | typeof PermFlagMembers | typeof PermFl
 
 class PermissionLogic extends HashedObject {
   static className = "hhs-wiki/v0/PermissionLogic";
-  static version = "0.0.5";
 
   static logger = new Logger(PermissionLogic.name, LogLevel.DEBUG);
 
@@ -44,7 +38,6 @@ class PermissionLogic extends HashedObject {
   owners?: HashedSet<Identity>;
   moderators?: CausalSet<Identity>;
   members?: CausalSet<Identity>;
-  //editFlags?: CausalSet<string>;
 
   readConfig?: CausalSet<PermFlag>;
   writeConfig?: CausalSet<PermFlag>;
@@ -68,20 +61,16 @@ class PermissionLogic extends HashedObject {
   constructor(owners?: IterableIterator<Identity>) {
     super();
 
-    // this.pages = new MutableSet<Page>();
-
-    // this._processEventLock = new Lock();
-    // this._pendingEvents    = [];
-
     if (owners !== undefined) {
-      // this.setAuthor(owner);
 
       this.owners = new HashedSet<Identity>(owners);
+      // console.log('setting up permission logic object', [...owners], this.owners, [...this.owners.values()])
 
       this.addDerivedField(
         "moderators",
-        new CausalSet<Identity>({ writers: this.owners.values() })
+        new CausalSet<Identity>({ writers: owners })
       );
+      console.log('permission logic moderators', this.moderators)
       this.addDerivedField(
         "members",
         new CausalSet<Identity>({
@@ -89,6 +78,7 @@ class PermissionLogic extends HashedObject {
           mutableWriters: this.moderators,
         })
       );
+      console.log('permission logic members', this.members)
       this.addDerivedField(
         "readConfig",
         new CausalSet<PermFlag>({
@@ -105,7 +95,6 @@ class PermissionLogic extends HashedObject {
           acceptedElements: PermissionLogic.permFlags,
         })
       );
-      // this.version = PermissionLogic.version;
 
       this.init();
     }
@@ -123,14 +112,6 @@ class PermissionLogic extends HashedObject {
   }
 
   init(): void {
-    // After your object is sent over the network and reconstructed on another peer, or
-    // after loading it from the store, this method will be called to perform any necessary
-    // initialization.
-    //this.pages?.cascadeMutableContentEvents();
-    // this.addObserver(this._pagesObserver);
-    /*if (this._index === undefined) {
-            this._index = new Page("/", this);
-        }*/
   }
 
   async validate(_references: Map<string, HashedObject>): Promise<boolean> {
@@ -148,150 +129,7 @@ class PermissionLogic extends HashedObject {
 
     return this.equals(another);
   }
-
-  async startSync(): Promise<void> {
-    this._shouldBeSynchronizing = true;
-    await this.updateSyncState();
-  }
-
-  async stopSync(): Promise<void> {
-    this._shouldBeSynchronizing = false;
-    await this.updateSyncState();
-  }
-
-  async updateSyncState() {
-    if (this._syncLock.acquire()) {
-      try {
-        while (this._synchronizing !== this._shouldBeSynchronizing) {
-          if (this._synchronizing) {
-            await this.doStopSync();
-          } else {
-            await this.doStartSync();
-          }
-
-          this._synchronizing = !this._synchronizing;
-        }
-      } finally {
-        this._syncLock.release();
-      }
-    }
-  }
-
-  private async doStartSync(): Promise<void> {
-    let resources = this.getResources();
-
-    if (resources === undefined) {
-      throw new Error("Cannot start sync: resources not configured.");
-    }
-
-    if (resources.config?.id === undefined) {
-      throw new Error(
-        "Cannot start sync: local identity has not been defined."
-      );
-    }
-
-    if (resources.store === undefined) {
-      throw new Error(
-        "Cannot start sync: a local store has not been configured."
-      );
-    }
-
-    if (this._node === undefined) {
-      PermissionLogic.logger.debug("Wiki " + this.getLastHash() + ": starting sync");
-
-      await this.loadAndWatchForChanges();
-
-      this._node = new MeshNode(resources);
-
-      const localPeer = resources.getPeersForDiscovery()[0];
-      const peerSource = new ObjectDiscoveryPeerSource(
-        resources.mesh,
-        this,
-        resources.config.linkupServers,
-        LinkupAddress.fromURL(localPeer.endpoint, localPeer.identity),
-        resources.getEndointParserForDiscovery()
-      );
-
-      this._peerGroup = {
-        id: this.getLastHash(),
-        localPeer: localPeer,
-        peerSource: peerSource,
-      };
-
-      const peerGroup = this._peerGroup;
-
-      await this._node.broadcast(this);
-      await this._node.sync(
-        this.pages as CausalArray<Page>,
-        SyncMode.single,
-        peerGroup
-      );
-      await this._node.sync(
-        this.readConfig as CausalSet<PermFlag>,
-        SyncMode.single,
-        peerGroup
-      );
-      await this._node.sync(
-        this.writeConfig as CausalSet<PermFlag>,
-        SyncMode.single,
-        peerGroup
-      );
-      await this._node.sync(
-        this.members as CausalSet<Identity>,
-        SyncMode.single,
-        peerGroup
-      );
-      await this._node.sync(
-        this.moderators as CausalSet<Identity>,
-        SyncMode.single,
-        peerGroup
-      );
-      await this._node.sync(
-        this.title as MutableReference<string>,
-        SyncMode.single,
-        peerGroup
-      );
-
-      PermissionLogic.logger.debug(
-        "Wiki " + this.getLastHash() + ": done starting sync"
-      );
-    }
-  }
-
-  private async doStopSync(): Promise<void> {
-    if (this._node !== undefined) {
-      console.log("stopping sync of wiki permission info" + this.getLastHash());
-      await this._node?.stopBroadcast(this);
-      await this._node?.stopSync(
-        this.pages as CausalArray<Page>,
-        this._peerGroup?.id as string
-      );
-      await this._node?.stopSync(
-        this.readConfig as CausalSet<PermFlag>,
-        this._peerGroup?.id as string
-      );
-      await this._node?.stopSync(
-        this.writeConfig as CausalSet<PermFlag>,
-        this._peerGroup?.id as string
-      );
-      await this._node?.stopSync(
-        this.members as CausalSet<Identity>,
-        this._peerGroup?.id as string
-      );
-      await this._node?.stopSync(
-        this.moderators as CausalSet<Identity>,
-        this._peerGroup?.id as string
-      );
-      await this._node?.stopSync(
-        this.title as MutableReference<string>,
-        this._peerGroup?.id as string
-      );
-      this._node = undefined;
-    }
-
-    console.log("done stopping sync of wiki " + this.getLastHash());
-  }
-
+  
   //deprecated FIXME
   isAllowedIdentity(_id: Identity) {
     return true; //!this.offendingAuthors?.hasByHash(id.getLastHash());
