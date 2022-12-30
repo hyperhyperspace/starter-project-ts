@@ -68,7 +68,7 @@ class PermissionLogic extends HashedObject {
 
       this.addDerivedField(
         "moderators",
-        new CausalSet<Identity>({ writers: owners })
+        new CausalSet<Identity>({ writers: this.owners.values() })
       );
       console.log('permission logic moderators', this.moderators)
       this.addDerivedField(
