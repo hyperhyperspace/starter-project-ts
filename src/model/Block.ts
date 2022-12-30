@@ -1,5 +1,5 @@
 import { Authorizer, CausalReference, ClassRegistry, HashedObject, Identity } from '@hyper-hyper-space/core';
-import { WikiSpace } from './WikiSpace';
+import { PermissionLogic } from './PermissionLogic';
 
 
 enum BlockType {
@@ -13,12 +13,12 @@ class Block extends CausalReference<string> {
     static className = 'hhs-wiki/v0/Block';
 
     type?: BlockType;
-    wiki?: WikiSpace;
+    permissionLogic?: PermissionLogic;
 
-    constructor(type: BlockType = BlockType.Text, wiki?: WikiSpace) {
-        super(wiki? {writers: wiki.owners?.values(), acceptedTypes: ['string']} : {});
-        this.wiki = wiki;
-        if (wiki !== undefined) {
+    constructor(type: BlockType = BlockType.Text, permissionLogic?: PermissionLogic) {
+        super(permissionLogic? {writers: permissionLogic.owners?.values(), acceptedTypes: ['string']} : {});
+        this.permissionLogic = permissionLogic;
+        if (permissionLogic !== undefined) {
             this.setRandomId();
             this.type = type;
         }
@@ -33,7 +33,7 @@ class Block extends CausalReference<string> {
     }
 
     async validate(_references: Map<string, HashedObject>): Promise<boolean> {
-        const another = new Block(this.type, this.wiki);
+        const another = new Block(this.type, this.permissionLogic);
 
         another.setId(this.getId() as string);
 
@@ -45,7 +45,7 @@ class Block extends CausalReference<string> {
     }
 
     protected createUpdateAuthorizer(author?: Identity): Authorizer {
-        return this.wiki?.permissionLogic?.createUpdateAuthorizer(author)!;
+        return this.permissionLogic?.createUpdateAuthorizer(author)!;
     }
 
     canUpdate(author?: Identity) {

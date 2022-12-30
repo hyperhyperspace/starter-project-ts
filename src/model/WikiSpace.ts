@@ -308,7 +308,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
   getPage(pageName: string) {
     // create the page we want to navigate to, so we can figure out its hash
-    let page = new Page(pageName, this);
+    let page = new Page(pageName, this.permissionLogic, this.hash());
 
     // and try to get it from the wiki
     const existingPage = this.pages?.get(page.hash());
@@ -335,7 +335,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
   }
 
   createPage(pageName: string) {
-    const page = new Page(pageName, this);
+    const page = new Page(pageName, this.permissionLogic, this.hash());
 
     if (this.hasResources()) {
       page.setResources(this.getResources()!);
@@ -346,7 +346,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
   async createWelcomePage(title: string, author: Identity) {
     const welcomePage = this.createPage("Welcome");
-    const welcomeBlock = new Block(BlockType.Text, this);
+    const welcomeBlock = new Block(BlockType.Text, this.permissionLogic);
     welcomeBlock.setId("welcome-block-for-" + this.hash());
     await welcomeBlock.setValue(
       'This is the first page of "' + title + '".',
@@ -360,7 +360,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
   }
 
   async addPage(page: Page, author: Identity) {
-    if (page.wiki !== this) {
+    if (page.wikiHash !== this.hash()) {
       throw new Error("Trying to add a page blonging to a different wiki");
     }
 
@@ -383,7 +383,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
   async navigateTo(pageName: string, author: Identity) {
     // create the page we want to navigate to, so we can figure out its hash
-    let page = new Page(pageName, this);
+    let page = new Page(pageName, this.permissionLogic, this.hash());
 
     // and try to get it from the wiki
     const existingPage = this.pages?.get(page.hash());

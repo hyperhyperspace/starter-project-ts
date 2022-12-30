@@ -1,5 +1,6 @@
 import {
   ClassRegistry,
+  Hash,
   HashedObject,
   Hashing,
   Identity,
@@ -8,26 +9,28 @@ import {
 import { BlockType } from "..";
 import { PageBlockArray } from "./PageBlockArray";
 import { Block } from "./Block";
-import { WikiSpace } from "./WikiSpace";
+import { PermissionLogic } from "./PermissionLogic";
 
 class Page extends HashedObject {
   static className = "hhs-wiki/v0/Page";
 
-  wiki?: WikiSpace;
+  permissionLogic?: PermissionLogic;
+  wikiHash?: Hash;
   name?: string;
   blocks?: PageBlockArray;
   titleBlock?: Block;
 
-  constructor(name?: string, wiki?: WikiSpace) {
+  constructor(name?: string, permissionLogic?: PermissionLogic, wikiHash?: Hash) {
     super();
 
-    if (name !== undefined && wiki !== undefined) {
-      this.wiki = wiki;
+    if (name !== undefined && permissionLogic !== undefined && wikiHash !== undefined) {
+      this.permissionLogic = permissionLogic;
+      this.wikiHash = wikiHash
       this.name = name;
       this.setId(
-        Hashing.forString(this.wiki.hash() + "_" + this.name)
+        Hashing.forString(wikiHash + "_" + this.name)
       );
-      this.addDerivedField('blocks', new PageBlockArray(wiki.permissionLogic));
+      this.addDerivedField('blocks', new PageBlockArray(permissionLogic));
       this.addDerivedField('titleBlock', new Block());
     }
   }
@@ -35,13 +38,13 @@ class Page extends HashedObject {
   setAuthor(author: Identity) {
     super.setAuthor(author);
     this.setId(
-      Hashing.forString(this.wiki?.hash() + "_" + this.name)
+      Hashing.forString(this.wikiHash + "_" + this.name)
     );
   }
 
   async addBlock(idx?: number, type?: BlockType, author?: Identity) {
 
-    const block = new Block(type, this.wiki);
+    const block = new Block(type, this.permissionLogic);
     
     if (this.hasResources()) {
       block.setResources(this.getResources()!);
@@ -55,11 +58,6 @@ class Page extends HashedObject {
     
     await this.blocks?.saveQueuedOps();
     
-    if (!this.wiki?.hasPage(this.name as string)) {
-      await this.wiki?.pages?.insertAt(this, 0, author);
-      await this.wiki?.pages?.save();  
-    }
-
     return block;
   }
   
@@ -82,7 +80,7 @@ class Page extends HashedObject {
   }
 
   canUpdate(author?: Identity) {
-      return this.wiki?.permissionLogic?.createUpdateAuthorizer(author).attempt();
+      return this.permissionLogic?.createUpdateAuthorizer(author).attempt();
   }
 
   getClassName(): string {
@@ -92,7 +90,11 @@ class Page extends HashedObject {
   init(): void {}
 
   async validate(_references: Map<string, HashedObject>): Promise<boolean> {
-    if (this.wiki === undefined) {
+    if (this.permissionLogic === undefined) {
+        return false;
+    }
+
+    if (this.wikiHash === undefined) {
         return false;
     }
 
@@ -104,11 +106,11 @@ class Page extends HashedObject {
         return false;
     }
 
-    if (this.getId() !== Hashing.forString(this.wiki.hash() + "_" + this.name)) {
+    if (this.getId() !== Hashing.forString(this.wikiHash + "_" + this.name)) {
         return false;
     }
 
-    const another = new Page(this.name, this.wiki);
+    const another = new Page(this.name, this.permissionLogic, this.wikiHash);
 
     if (this.hasAuthor()) {
         another.setAuthor(this.getAuthor() as Identity);
