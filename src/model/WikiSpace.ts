@@ -27,7 +27,7 @@ import { PermissionLogic } from "./PermissionLogic";
 
 class WikiSpace extends HashedObject implements SpaceEntryPoint {
   static className = "hhs-wiki/v0/WikiSpace";
-  static version = "0.0.6";
+  static version = "0.0.7";
 
   static logger = new Logger(WikiSpace.name, LogLevel.DEBUG);
   owners?: HashedSet<Identity>;
