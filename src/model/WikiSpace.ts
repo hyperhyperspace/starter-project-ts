@@ -475,29 +475,27 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
       // handle restoring from a checkpoint
       } else if (ev.action === MutableContentEvents.RestoredCheckpoint) {
         if (this._node) {
-            for (let page of this.pages?.contents()!) {
-
+          await Promise.all([...this.pages?.contents()!].map(async (page) => {
             if (this._node)
               console.log("starting to sync page (obs) " + page?.getLastHash());
-            await this._node.sync(
+            this._node!.sync(
               page.blocks as CausalArray<Block>,
               SyncMode.single,
             );
             page.addObserver(this._pagesObserver);
-            await page.loadAndWatchForChanges();
 
-            for (let block of page.blocks?.contents()!) {
+            return Promise.all([page.loadAndWatchForChanges(), ...[...page.blocks?.contents()!].map(async (block) => {
               if (this._node)
                 console.log(
                   "starting sync block (obs-init) " + block?.getLastHash()
                 );
-              await this._node?.sync(
+              this._node?.sync(
                 block as Block,
                 SyncMode.single,
               );
-              await block.loadAndWatchForChanges();
-            }
-          }
+              return block.loadAndWatchForChanges();
+            })]);
+          }));
         }
       }
     }
