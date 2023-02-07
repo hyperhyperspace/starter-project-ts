@@ -208,17 +208,20 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         );
         page.addObserver(this._pagesObserver);
         await page.loadAndWatchForChanges();
-        for (let block of page.blocks?.contents()!) {
-          console.log(
-            "Page " +
-              page.name +
-              ": starting sync block " +
-              block?.getLastHash()
-          );
-          await this._node?.sync(block as Block, SyncMode.single, peerGroup);
-          block.cascadeMutableContentEvents();
-          await block.loadAndWatchForChanges();
-        }
+        
+        await Promise.all(
+          [...page.blocks?.contents()!].map(async (block) => {
+            console.log(
+              "Page " +
+                page.name +
+                ": starting sync block " +
+                block?.getLastHash()
+            );
+            this._node?.sync(block as Block, SyncMode.single, peerGroup);
+            block.cascadeMutableContentEvents();
+            await block.loadAndWatchForChanges();
+          })
+        );
       }
 
       await this._node.broadcast(this);
