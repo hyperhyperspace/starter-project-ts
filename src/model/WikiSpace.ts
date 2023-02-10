@@ -199,7 +199,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
 
       for (let page of this.pages?.values() || []) {
         WikiSpace.logger.debug(
-          "Wiki " + this.getLastHash() + ": starting sync of page " + page?.name
+          "Wiki " + this.getLastHash() + ": starting sync of page " + page?.name?.getValue()
         );
         await this._node?.sync(
           page.blocks as CausalArray<Block>,
@@ -209,18 +209,25 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
         page.addObserver(this._pagesObserver);
         await page.loadAndWatchForChanges();
         
+        // load the page name
+        await this._node?.sync(
+          page.name as MutableReference<string>,
+          SyncMode.single,
+          peerGroup
+        );
+
         await Promise.all(
           [...page.blocks?.contents()!].map(async (block) => {
             console.log(
               "Page " +
-                page.name +
+                page.name?.getValue() +
                 ": starting sync block " +
                 block?.getLastHash()
             );
             this._node?.sync(block as Block, SyncMode.single, peerGroup);
             block.cascadeMutableContentEvents();
             await block.loadAndWatchForChanges();
-          })
+          }),
         );
       }
 
@@ -271,6 +278,10 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
           );
           await block.dontWatchForChanges();
         }
+        await this._node?.stopSync(
+          page?.name as MutableReference<string>,
+          this._peerGroup?.id as string
+        );
       }
 
       await this._node?.stopBroadcast(this);
@@ -310,11 +321,7 @@ class WikiSpace extends HashedObject implements SpaceEntryPoint {
   }
 
   getPage(pageName: string) {
-    // create the page we want to navigate to, so we can figure out its hash
-    let page = new Page(pageName, this.permissionLogic, this.hash());
-
-    // and try to get it from the wiki
-    const existingPage = this.pages?.get(page.hash());
+    const existingPage = [...this.pages?.values()!].find(page => page.name?.getValue() === pageName);
 
     return existingPage;
   }
